@@ -23,3 +23,4 @@ fit = ac_fitVM(adata,headers);
 
 %% Evaluate fit
 ac_plotVMFit(fit);
+
