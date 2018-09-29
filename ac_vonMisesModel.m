@@ -19,7 +19,21 @@
 [headers,adata,amt] = ac_loadBehavioralData('s300');
 
 %% Call the fitting routine
-fit = ac_fitVM(adata,headers);
+
+% first fit on the cue direction data
+colordata = adata(adata(:,3)==1,:);
+colorfit = ac_fitVM(colordata,headers);
+
+dirdata = adata(adata(:,3)==2,:);
+dirfit = ac_fitVM(dirdata,headers);
+
+%% temp figure
+figure;
+subplot(211);
+plot(colorfit.out');
+subplot(212);
+plot(dirfit.out');
+legend({'All','Spatial','Feature','Target','Baseline'});
 
 %% Evaluate fit
 ac_plotVMFit(fit);

@@ -25,8 +25,6 @@ options = optimoptions('fmincon','Algorithm','active-set','TolFun',1,'TolCon',1,
 bestparams = fmincon(@(p) vmlike(p,adata),ip,[],[],[],[],minp,maxp,[],options);
 [finalLike,fit] = vmlike(bestparams,adata);
 
-stop = 2;
-
 function [likelihood,fit] = vmlike(params,adata)
 %% Likelihood function
     
