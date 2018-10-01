@@ -9,13 +9,26 @@ global fixedParams
 
 % each task condition gets a kappa parameter and a beta weight
 
-% start by fitting only the target trials
+% target trials only have a single kappa value
 params.kappa0 = [2 0 inf];
-params.kappa1 = [2 0 inf];
-params.kappa2 = [2 0 inf];
-params.kappa3 = [2 0 inf];
-params.kappa4 = [2 0 inf];
-params.beta = 1;
+params.beta0 = 1;
+
+% all the ohter conditions (1-4) have a beta weight and kappa for every
+% target. We'll call them target, featdist, sidedist, distractor to keep
+% track.
+types = {'target','featdist','sidedist','distdist'};
+for tt = 1:4
+    for ti = 1:4
+        type = types{ti};
+        params.(sprintf('kappa_%i_%s',tt,type)) = [2 0 inf];
+        if ti==1 % if target
+            binit = 1; % set the target weight to 1 so that normalizing is simpler
+        else
+            binit = [0 -inf inf];
+        end
+        params.(sprintf('beta_%i_%s',tt,type)) = binit;
+    end
+end
 
 %% Fit
 [ip,minp,maxp] = initParams(params);
@@ -24,6 +37,9 @@ options = optimoptions('fmincon','Algorithm','active-set','TolFun',1,'TolCon',1,
 
 bestparams = fmincon(@(p) vmlike(p,adata),ip,[],[],[],[],minp,maxp,[],options);
 [finalLike,fit] = vmlike(bestparams,adata);
+
+fit.params = getParams(bestparams);
+fit.like = finalLike;
 
 function [likelihood,fit] = vmlike(params,adata)
 %% Likelihood function
@@ -48,18 +64,59 @@ params = getParams(params);
 for ai = 1:size(adata,1)
     trial = adata(ai,:);
     
-    probs(ai) = vonMises(trial(11),trial(5),params.(sprintf('kappa%i',trial(2))));
+    switch trial(2)
+        case 0
+            % BASELINE TRIAL
+            probs(ai) = vonMises(trial(11),trial(5),params.kappa0);
+        otherwise
+            % TARGET TRIAL
+            % compute individial probabilities and weight
+            probs(ai) = getWeightedProb(trial,params);
+    end
 end
 
 likelihood = -sum(log(probs));
 
-x = -pi:pi/128:pi;
-for i = 0:4
-    fit.out(i+1,:) = vonMises(x,0,params.(sprintf('kappa%i',i)));
-end
+fit = struct;
+% x = -pi:pi/128:pi;
+% for i = 0:4
+%     fit.out(i+1,:) = vonMises(x,0,params.(sprintf('kappa%i',i)));
+% end
 
 
+function prob = getWeightedProb(trial,params)
 
+sidedists = [2 1 4 3];
+featdists = [3 4 1 2];
+distdists = [4 3 2 1];
+
+sidedist = sidedists(trial(1));
+featdist = featdists(trial(1));
+distdist = distdists(trial(1));
+
+% get the angle for each one
+idx = [7 8 9 10];
+
+targetAngle = trial(idx(trial(1)));
+featAngle = trial(idx(featdist));
+sideAngle = trial(idx(sidedist));
+distAngle = trial(idx(distdist));
+
+% get the probabilities
+targetProb = vonMises(targetAngle,0,params.(sprintf('kappa_%i_target',trial(2))));
+featProb = vonMises(targetAngle,0,params.(sprintf('kappa_%i_featdist',trial(2))));
+sideProb = vonMises(targetAngle,0,params.(sprintf('kappa_%i_sidedist',trial(2))));
+distProb = vonMises(targetAngle,0,params.(sprintf('kappa_%i_distdist',trial(2))));
+probs = [targetProb featProb sideProb distProb];
+
+% get the betas
+betas = [params.(sprintf('beta_%i_target',trial(2))) ...
+    params.(sprintf('beta_%i_featdist',trial(2))) ...
+    params.(sprintf('beta_%i_sidedist',trial(2))) ...
+    params.(sprintf('beta_%i_distdist',trial(2)))];
+betas = betas ./ sum(betas);
+
+prob = probs * betas';
 
 %% Helper routines
 
