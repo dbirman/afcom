@@ -28,13 +28,44 @@ dirdata = adata(adata(:,3)==2,:);
 dirfit = ac_fitVM(dirdata,headers);
 
 %% temp figure
-figure;
-subplot(211);
-plot(colorfit.out');
-subplot(212);
-plot(dirfit.out');
-legend({'All','Spatial','Feature','Target','Baseline'});
+fit = colorfit;
 
+x = -pi:pi/128:pi;
+    
+    
+h = figure;
+plot(x,fit.out');
+vline(fit.tAngle);
+text(fit.tAngle,0.02,'Target');
+vline(fit.sAngle);
+text(fit.sAngle,0.02,'Same-side');
+vline(fit.fAngle);
+text(fit.fAngle,0.02,'Same-feature');
+vline(fit.dAngle);
+text(fit.dAngle,0.02,'Distractor');
+legend({'All','Side','Feature','Target','Baseline'});
+title('Color estimation');
+drawPublishAxis;
+
+savepdf(h,fullfile('~/proj/afcom/report_color.pdf'));
+
+fit = dirfit;
+
+
+h = figure;
+plot(x,fit.out');
+vline(fit.tAngle);
+text(fit.tAngle,0.02,'Target');
+vline(fit.sAngle);
+text(fit.sAngle,0.02,'Same-side');
+vline(fit.fAngle);
+text(fit.fAngle,0.02,'Same-feature');
+vline(fit.dAngle);
+text(fit.dAngle,0.02,'Distractor');
+legend({'All','Side','Feature','Target','Baseline'});
+title('Direction estimation');
+drawPublishAxis;
+savepdf(h,fullfile('~/proj/afcom/report_dir.pdf'));
 %% Evaluate fit
 ac_plotVMFit(fit);
 

@@ -47,10 +47,10 @@ end
 
 options = optimoptions('fmincon','Algorithm','active-set','TolFun',1,'TolCon',1,'Display','off'); % set a limit or it goes on foreeeeeeeeeeeever
 
-bestparams = fmincon(@(p) vmlike(p,adata),ip,[],[],[],[],minp,maxp,[],options);
-[~,fit] = vmlike(bestparams,adata);
+bestparams = fmincon(@(p) vmlike(p,adata,0),ip,[],[],[],[],minp,maxp,[],options);
+[~,fit] = vmlike(bestparams,adata,1);
 
-function [likelihood,fit] = vmlike(params,adata)
+function [likelihood,fit] = vmlike(params,adata,computeOutput)
 %% Likelihood function
     
 %   Columns 1 through 5
@@ -93,13 +93,36 @@ end
 fit.likelihood = likelihood;
 fit.params = params;
 
-% create fake distributions by setting the target, feat, side, and dist
-% positions and building the probability models from these. 
+if computeOutput
+    % create fake distributions by setting the target, feat, side, and dist
+    % positions and building the probability models from these. 
+    
+    tAngle = 0;
+    sAngle = pi/2;
+    fAngle = -pi/2;
+    dAngle = pi; % mostly this one has no effect, so fine to put it in a weird place
 
-% x = -pi:pi/128:pi;
-% for i = 0:4
-%     fit.out(i+1,:) = vonMises(x,0,params.(sprintf('kappa%i',i)));
-% end
+    x = -pi:pi/128:pi;
+    
+    for tt=0:3
+        tOut = vonMises(x,tAngle,params.(sprintf('kappa_%i_target',tt)));
+        sOut = vonMises(x,sAngle,params.(sprintf('kappa_%i_sidedist',tt)));
+        fOut = vonMises(x,fAngle,params.(sprintf('kappa_%i_featdist',tt)));
+        dOut = vonMises(x,dAngle,params.(sprintf('kappa_%i_distdist',tt)));
+        
+        clike = tOut + sOut + fOut + dOut;
+        
+        fit.out(tt+1,:) = clike;
+    end
+    
+    fit.out(5,:) = vonMises(x,0,params.kappa4);
+    
+    fit.tAngle = tAngle;
+    fit.sAngle = sAngle;
+    fit.fAngle = fAngle;
+    fit.dAngle = dAngle;
+    fit.out = fit.out ./ repmat(sum(fit.out')',1,size(fit.out,2));
+end
 
 
 function prob = getWeightedProb(trial,params)
