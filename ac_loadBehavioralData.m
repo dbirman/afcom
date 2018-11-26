@@ -13,10 +13,9 @@ for fi = 1:length(files)
 end
 
 %% concatenate all trials
-pvars = {'target','trialType','cue'};
+pvars = {'target','trialType','cue','duration'};
 rvars = {'dead','targetAngle','distractorAngle','angle1','angle2','angle3',...
     'angle4','respAngle','respDistance','distDistance'};
-runs = [];
 
 for pii = 1:length(pvars)
     eval(sprintf('%s = [];',pvars{pii}));
@@ -24,10 +23,12 @@ end
 for ri = 1:length(rvars)
     eval(sprintf('%s = [];',rvars{ri}));
 end
+runs = [];
+reactionTime = [];
 
 runcount = [0 0];
 for run = 1:length(e)
-    runs = [runs ones(1,e{run}.nTrials)];
+    runs = [runs run*ones(1,e{run}.nTrials)];
     runcount(e{run}.parameter.cue(1)) = runcount(e{run}.parameter.cue(1)) + 1;
     for pii = 1:length(pvars)
         eval(sprintf('%s = [%s e{run}.parameter.%s];',pvars{pii},pvars{pii},pvars{pii}));
@@ -35,6 +36,7 @@ for run = 1:length(e)
     for ri = 1:length(rvars)
         eval(sprintf('%s = [%s e{run}.randVars.%s];',rvars{ri},rvars{ri},rvars{ri}));
     end
+    reactionTime = [reactionTime e{run}.reactionTime];
 end
 
 %% concatenate mouse tracks
@@ -69,7 +71,7 @@ end
 amt = fliplr(amt);
 
 %% create one giant matrix, but just of a few variables that matter
-header = [pvars rvars];
+header = [pvars rvars {'runs' 'RT'}];
 data = [];
 for pii = 1:length(pvars)
     data = eval(sprintf('[data %s'']',pvars{pii}));
@@ -77,6 +79,7 @@ end
 for ri = 1:length(rvars)
     data = eval(sprintf('[data %s'']',rvars{ri}));
 end
+data = [data runs' reactionTime'];
 adata = data;
 % keepIdxs = ~any(isnan(data(:,4)),2);
 % adata = data(keepIdxs,:);

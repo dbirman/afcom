@@ -3,9 +3,12 @@
 dfolder = '~/data/afcom/';
 local = '~/data/afcom/';
 
-subjects = [300];
+subjects = [300 366 376 377];% 378];
 
+call = sprintf('rsync -azP gru@dubonnet.stanford.edu:~/data/afcom ~/data');
+system(call);
+
+clear SIDs
 for si = 1:length(subjects)
-    call = sprintf('scp -r gru@dubonnet.stanford.edu:~/data/afcom ~/data');
-    system(call);
+    SIDs{si} = sprintf('s%i',subjects(si));
 end
