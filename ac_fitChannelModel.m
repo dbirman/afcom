@@ -1,6 +1,11 @@
-function fit = ac_fitVonMises(adata,mode,fit)
-%% AC_FITVONMISES
-% Fit a von mises to each condition with lapse rates
+function fit = ac_fitChannelModel(adata,mode,fit)
+%% AC_FITCHANNELMODEL
+% Fit the channel model to data from a given subject.
+%
+%   CHANNEL MODEL
+%
+% The channel model idea is that motion direction and color are encoded by
+% populations of neurons (which may/may not overlap) and which 
 %
 % MODE OPTIONS
 %   'lapseall'; fits a lapse rate separately to each condition

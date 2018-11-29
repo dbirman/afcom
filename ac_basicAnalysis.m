@@ -8,11 +8,17 @@ figure(1); clf;
 figure(2); clf;
 figure(3); clf;
 
-cmap = brewermap(5,'Dark2');
+cmap_ = colorblindmap/255;
+
+cmap(5,:) = [0.5 0.5 0.5];
+cmap(4,:) = cmap_(7,:);
+cmap(3,:) = cmap_(4,:);
+cmap(2,:) = cmap_(8,:);
+cmap(1,:) = cmap_(1,:);
 
 alldata = [];
 
-for si = 1%:length(subjects)
+for si = 1:length(subjects)
     %% Load data
     [headers,adata,amt] = ac_loadBehavioralData(SIDs{si});
    
@@ -53,12 +59,14 @@ for si = 1%:length(subjects)
         dat = colordata(colorgroups(gi-1):colorgroups(gi),:);
         dist = angdist(dat(:,12),dat(:,6));
         mu = mean(dist);
-        ci = bootci(100,@mean,dist);
+        ci = bootci(100,@median,dist);
         plot(gi-1,dist,'o','MarkerSize',8,'MarkerFaceColor',[0.75 0.75 0.75],'MarkerEdgeColor','w');
         errorbar(gi-1,mu,ci(2)-mu,'-k');
         plot(gi-1,mu,'o','MarkerSize',15,'MarkerFaceColor','k','MarkerEdgeColor','w');
         ticks{end+1} = sprintf('%i-%i',colorgroups(gi-1),colorgroups(gi));
     end
+    a = axis;
+    axis([a(1) a(2) 0 2]);
     set(gca,'XTick',1:(length(colorgroups)-1),'XTickLabel',ticks);
     
     
@@ -74,6 +82,8 @@ for si = 1%:length(subjects)
         plot(gi-1,mu,'o','MarkerSize',15,'MarkerFaceColor','k','MarkerEdgeColor','w');
         ticks{end+1} = sprintf('%i-%i',dirgroups(gi-1),dirgroups(gi));
     end
+    a = axis;
+    axis([a(1) a(2) 0 2]);
     set(gca,'XTick',1:(length(dirgroups)-1),'XTickLabel',ticks);
     
     %% Distribution figure
@@ -90,128 +100,108 @@ for si = 1%:length(subjects)
     a = axis;
     axis([0 2*pi a(3) a(4)]);
     set(gca,'XTick',0:pi/4:2*pi);
+    
+    %% Separate color and direction
+    colordata = sel(adata,3,1); % report color
+    dirdata = sel(adata,3,2);
+    
+    %% Check for RT differences
+    for ti = 1:5
+        tdata = colordata(colordata(:,2)==(ti-1),16);
+        mu = nanmean(tdata);
+        ci = bootci(1000,@nanmean,tdata);
+        disp(sprintf('Color RT: %1.2f [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+    end
+    for ti = 1:5
+        tdata = dirdata(dirdata(:,2)==(ti-1),16);
+        mu = nanmean(tdata);
+        ci = bootci(1000,@nanmean,tdata);
+        disp(sprintf('Direction RT: %1.2f [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+    end
+
 
     %% Fit model
     colordata = sel(adata,3,1); % report color
     dirdata = sel(adata,3,2);
     
-    colorfit = ac_fitVonMises(colordata,'lapseall');
-    dirfit = ac_fitVonMises(dirdata,'lapseall');
-%     %% Group trials by type
-%     tType = {'all','spatial','feature','target','baseline'};
-%     tData = cell(1,5);
-%     for ti = 0:4
-%         tData{ti+1} = adata(adata(:,2)==ti,:);
-%     end
-%     
-%     %% Check for RT differences
-%     for ti = 1:5
-%         mu = nanmean(tData{ti}(:,16));
-%         ci = bootci(1000,@nanmean,tData{ti}(:,16));
-%         disp(sprintf('RT: %1.2f [%1.2f, %1.2f]',mu,ci(1),ci(2)));
-%     end
-%     
-%     %% Fit a vonMises
-%     clear cfit dfit
-%     for ti = 1:5
-%         disp(sprintf('Fitting VM for trials: %s',tType{ti}));
-%         cdat = tData{ti};
-%         % get color task
-%         colordata = cdat(cdat(:,3)==1,:);
-%         dirdata = cdat(cdat(:,3)==2,:);
-%         dur = [1 0.25];
-%         for di = 1:length(dur)
-%             cfit{ti,di} = ac_fitVonMises(colordata(colordata(:,4)==dur(di),:));
-%             dfit{ti,di} = ac_fitVonMises(dirdata(dirdata(:,4)==dur(di),:));
-%         end
-%     end
-%     
-%     %% Print out the SD estimates
-%     disp('Report: direction');
-%     for ti = 1:5
-%         disp(sprintf('%s SD: %1.2f',tType{ti},sqrt(1/cfit{ti}.params.kappa)));
-%     end
-%     disp('Report: color');
-%     for ti = 1:5
-%         disp(sprintf('%s SD: %1.2f',tType{ti},sqrt(1/dfit{ti}.params.kappa)));
-%     end
-% 
-%     %% Figure for each subject
-%     figure(2);
-%     for di = 1:length(dur)
-%         subplot(length(subjects)+1,4,(si-1)*4+0+di);
-%         hold on
-%         for ti = 1:5
-%             plot(cfit{ti,di}.x,cfit{ti,di}.out,'Color',cmap(ti,:));
-%         end
-%         axis([-pi pi 0 2.5]);
-%     %     drawPublishAxis;
-%         subplot(length(subjects)+1,4,(si-1)*4+2+di);
-%         hold on
-%         for ti = 1:5
-%             plot(dfit{ti,di}.x,dfit{ti,di}.out,'Color',cmap(ti,:));
-%         end
-%         a = axis;
-%         axis([-pi pi 0 2.5]);
-%         legend(tType);
-%     %     drawPublishAxis;
-%     end
-    
+    cues = [1 2];
+    reportType = {'color','direction'};
+    durations = [1 0.25];
+    durationType = {'easy','hard'};
+    for ci = 1:length(cues)
+        for di = 1:length(durations)
+            data = sel(adata,3,cues(ci));
+            data = sel(data,4,durations(di));
+            fit{ci,di} = ac_fitVonMises(data,'nocv');%'nocv');
+            fit{ci,di}.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
+        end
+    end
+
+    %% Figure for each subject
+    figure(2);
+    for ci = 1:length(cues)
+        for di = 1:length(durations)
+            subplot(length(subjects)+1,4,(si-1)*4+(ci-1)*2+di); % plot 1/2 are hard/easy COLOR, then DIRECTION
+            hold on
+            for tt = 1:5
+                if any(tt==[1 4 5])
+                    p(tt) = plot(fit{ci,di}.x,fit{ci,di}.out(tt,:),'Color',cmap(tt,:),'LineWidth',1);
+                else
+                    p(tt) = plot(fit{ci,di}.x,fit{ci,di}.out(tt,:),'Color',cmap(tt,:),'LineWidth',2);
+                end
+            end
+            axis([-pi pi 0 1.5]);
+            if ci==1 && di==1
+                ylabel('PDF (a.u.)');
+            end
+            if si==1
+                title(sprintf('%s report %s',durationType{di},reportType{ci}));
+            end
+        end
+    end
+    legend(fliplr(p),fliplr(fit{1,1}.trialTypes));
 end
 
-%% Group trials by type
-tType = {'all','spatial','feature','target','baseline'};
-tData = cell(1,5);
-for ti = 0:4
-    tData{ti+1} = alldata(alldata(:,2)==ti,:);
-end
+%% ANALYSIS OF COMBINED DATA
 
-%% Fit a vonMises
-% clear fit
-% for ti = 1:5
-%     disp(sprintf('Fitting VM for trials: %s',tType{ti}));
-%     cdat = tData{ti};
-%     cfit{ti} = ac_fitVonMises(cdat(cdat(:,3)==1,:));
-%     dfit{ti} = ac_fitVonMises(cdat(cdat(:,3)==2,:));
-% end
-
-clear cfit dfit
-for ti = 1:5
-    disp(sprintf('Fitting VM for trials: %s',tType{ti}));
-    cdat = tData{ti};
-    % get color task
-    colordata = cdat(cdat(:,3)==1,:);
-    dirdata = cdat(cdat(:,3)==2,:);
-    dur = [1 0.25];
-    for di = 1:length(dur)
-        cfit{ti,di} = ac_fitVonMises(colordata(colordata(:,4)==dur(di),:));
-        dfit{ti,di} = ac_fitVonMises(dirdata(dirdata(:,4)==dur(di),:));
+for ci = 1:length(cues)
+    for di = 1:length(durations)
+        data = sel(alldata,3,cues(ci));
+        data = sel(data,4,durations(di));
+        fit{ci,di} = ac_fitVonMises(data,'nocv');
+        fit{ci,di}.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
     end
 end
+
 
 %% Figure for all subject
 
 figure(2);
-for di = 1:length(dur)
-    subplot(length(subjects)+1,4,length(subjects)*4+0+di);
-    hold on
-    for ti = 1:5
-        plot(cfit{ti,di}.x,cfit{ti,di}.out,'Color',cmap(ti,:));
+for ci = 1:length(cues)
+    for di = 1:length(durations)
+        subplot(length(subjects)+1,4,length(subjects)*4+(ci-1)*2+di); % plot 1/2 are hard/easy COLOR, then DIRECTION
+        hold on
+        for tt = 1:5
+            if any(tt==[1 4 5])
+                p(tt) = plot(fit{ci,di}.x,fit{ci,di}.out(tt,:),'Color',cmap(tt,:),'LineWidth',1);
+            else
+                p(tt) = plot(fit{ci,di}.x,fit{ci,di}.out(tt,:),'Color',cmap(tt,:),'LineWidth',2);
+            end
+        end
+        axis([-pi pi 0 1.5]);
+        xlabel('Distance from target (deg)');
+        if ci==1 && di==1
+            ylabel('PDF (a.u.)');
+        end
     end
-    axis([-pi pi 0 2.5]);
-%     drawPublishAxis;
-    subplot(length(subjects)+1,4,length(subjects)*4+2+di);
-    hold on
-    for ti = 1:5
-        plot(dfit{ti,di}.x,dfit{ti,di}.out,'Color',cmap(ti,:));
-    end
-    a = axis;
-    axis([-pi pi 0 2.5]);
-    legend(tType);
-%     drawPublishAxis;
 end
+legend(fliplr(p),fliplr(fit{1,1}.trialTypes));
 
 
 %%
+h = figure(1);
+savepdf(h,fullfile('~/proj/afcom/figures/basic_hist.pdf'));
 h = figure(2);
-savepdf(h,fullfile('~/proj/afcom/figures/basic.pdf'));
+savepdf(h,fullfile('~/proj/afcom/figures/basic_VM.pdf'));
+h = figure(3);
+savepdf(h,fullfile('~/proj/afcom/figures/basic_learn.pdf'));
