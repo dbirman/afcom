@@ -55,7 +55,8 @@ for tt = 1:length(fixedParams.trialTypes)
 end
 
 if ~fixedParams.lapseall
-    params.lapse = [0.1 0 1];
+%     params.lapse = [0.1 0 1];
+    params.lapse = 0.5;
 end
 
 % don't fit a bias
