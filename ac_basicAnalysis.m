@@ -58,7 +58,7 @@ for si = 1:length(subjects)
     for gi = 2:length(colorgroups)
         dat = colordata(colorgroups(gi-1):colorgroups(gi),:);
         dist = angdist(dat(:,12),dat(:,6));
-        mu = mean(dist);
+        mu = median(dist);
         ci = bootci(100,@median,dist);
         plot(gi-1,dist,'o','MarkerSize',8,'MarkerFaceColor',[0.75 0.75 0.75],'MarkerEdgeColor','w');
         errorbar(gi-1,mu,ci(2)-mu,'-k');
@@ -75,8 +75,8 @@ for si = 1:length(subjects)
     for gi = 2:length(dirgroups)
         dat = dirdata(dirgroups(gi-1):dirgroups(gi),:);
         dist = angdist(dat(:,12),dat(:,6));
-        mu = mean(dist);
-        ci = bootci(100,@mean,dist);
+        mu = median(dist);
+        ci = bootci(100,@median,dist);
         plot(gi-1,dist,'o','MarkerSize',8,'MarkerFaceColor',[0.75 0.75 0.75],'MarkerEdgeColor','w');
         errorbar(gi-1,mu,ci(2)-mu,'-k');
         plot(gi-1,mu,'o','MarkerSize',15,'MarkerFaceColor','k','MarkerEdgeColor','w');
