@@ -1,19 +1,31 @@
-function fit = ac_fitChannelModel(adata,mode,fit)
-%% AC_FITCHANNELMODEL
-% Fit the channel model to data from a given subject.
+function fit = ac_fitEncodingModel(adata,mode,fit)
+%% AC_FITENCODINGMODEL
+% The encoding model assumes that features are each encoded by independent
+% von mises distributions. The likelihood of a response in any given
+% condition is a weighted sum of these different distributions.
 %
-%   CHANNEL MODEL
+% PARAMETERS
 %
-% The channel model idea is that motion direction and color are encoded by
-% populations of neurons (which may/may not overlap) and which 
+%   lambda - lapse rate (lambda) and response rate (1-lambda)
+%   beta_side - probability of sampling from the correct side
+%   beta_feat - probability of sampling from the correct feature within the
+%               correct side
+%   beta_dist - probability of sampling from the correct feature but on the
+%               wrong side
+%
+%   All of these von mises are multiplied according to their various
+%   weights to compute the final likelihood distribution
 %
 % MODE OPTIONS
-%   'lapseall'; fits a lapse rate separately to each condition
+%
+%   'bdist' - adds the beta_dist parameter, otherwise this is dropped
+%   'bias' - adds a bias parameter
+%
 global fixedParams
 
 fixedParams.trialTypes = {'all','spatial','feature','target','baseline'};
 fixedParams.trialTypeVals = [0 1 2 3 4];
-fixedParams.lapseall = isempty(strfind(mode,'sharedlapse'));
+fixedParams.bdist = ~isempty(strfind(mode,'bdist'));
 
 %% TEST FIT
 if ~isempty(strfind(mode,'eval'))
@@ -38,13 +50,13 @@ if isempty(strfind(mode,'nocv'))
             keyboard
         end
         
-        trainfit = ac_fitVonMises(train,strcat(mode,',nocv'));
-        testfit = ac_fitVonMises(test,strcat(mode',',eval'),trainfit);
+        trainfit = ac_fitEncodingModel(train,strcat(mode,',nocv'));
+        testfit = ac_fitEncodingModel(test,strcat(mode,',eval'),trainfit);
         aprobs = [aprobs; testfit.probs];
         like(ri) = testfit.likelihood;
     end
     
-    fit = ac_fitVonMises(adata,strcat(mode,',nocv'));
+    fit = ac_fitEncodingModel(adata,strcat(mode,',nocv'));
     fit.cv.probs = aprobs;
     fit.cv.likelihood = -nansum(log(aprobs));
     return
@@ -53,18 +65,23 @@ end
 %% PARAMETERS
 
 for tt = 1:length(fixedParams.trialTypes)
-    params.(sprintf('kappa%i',tt)) = [5 0 inf 0.5 20];
-    if fixedParams.lapseall
-        params.(sprintf('lapse%i',tt)) = [0.1 0 1 0 0.7];
+    params.(sprintf('kappa%i',tt)) = [5 0 100 0.5 20];
+    params.(sprintf('lapse%i',tt)) = [0.1 0 1 0 0.7];
+    params.(sprintf('beta_side%i',tt)) = [0.75 0 1 0.5 1];
+    params.(sprintf('beta_feat%i',tt)) = [0.75 0 1 0.5 1];
+    if fixedParams.bdist
+        params.(sprintf('beta_dist%i',tt)) = [0.1 0 1 0 0.7];
+    else
+        params.beta_dist = 0.5;
     end
 end
 
-if ~fixedParams.lapseall
-    params.lapse = [0.1 0 1];
-end
-
 % don't fit a bias
-params.bias = 0; % [0 -pi pi];
+if ~isempty(strfind(mode,'bias'))
+    params.bias = [0 -pi pi -pi/8 pi/8];
+else
+    params.bias = 0; % [0 -pi pi];
+end
 
 [ip,minp,maxp,plb,pub] = initParams(params);
 
@@ -87,6 +104,14 @@ fit.trialTypeVals = fixedParams.trialTypeVals;
 
 function [likelihood, fit] = vmlike(params,adata,computeOutput)
 global fixedParams
+
+
+if any(isnan(params))
+    warning('parameter evaluated to nan');
+    stop = 1;
+    likelihood = inf; 
+    return
+end
 
 params = getParams(params);
 
@@ -118,15 +143,56 @@ for tt = 1:length(fixedParams.trialTypes)
     trialType = fixedParams.trialTypeVals(tt);
     tdata = sel(adata,2,trialType);
     
-    lapse = getLapse(params,tt);
     kappa = params.(sprintf('kappa%i',tt));
+    lapse = params.(sprintf('lapse%i',tt));
+    beta_side = params.(sprintf('beta_side%i',tt));
+    beta_feat = params.(sprintf('beta_feat%i',tt));
+    if fixedParams.bdist
+        beta_dist = params.(sprintf('beta_dist%i',tt));
+    else
+        beta_dist = params.beta_dist;
+    end
     
     for ti = 1:size(tdata,1)
         trial = tdata(ti,:);
 
         if ~trial(5)
             % not dead
-            probs(count) = lapse * lapseProb + (1-lapse) * vonMises(trial(12),trial(6),kappa);
+            
+            % get the relevant angles
+            switch trial(1)
+                case 1
+                    side = 2;
+                    feat = 3;
+                    dist = 4;
+                case 2
+                    side = 1;
+                    feat = 4;
+                    dist = 3;
+                case 3
+                    side = 4;
+                    feat = 1;
+                    dist = 2;
+                case 4
+                    side = 3;
+                    feat = 2;
+                    dist = 1;
+            end
+            
+            aIdxs = [8 9 10 11];
+            
+            % compute the likelihood for the target side
+            likeTarget = vonMises(trial(12),trial(aIdxs(trial(1))),kappa);
+            likeSide = vonMises(trial(12),trial(aIdxs(side)),kappa);
+            likeFeat = vonMises(trial(12),trial(aIdxs(feat)),kappa);
+            likeDist = vonMises(trial(12),trial(aIdxs(dist)),kappa);
+            
+            likeSide = beta_feat * likeTarget + (1-beta_feat) * likeSide;
+            likeOff = beta_dist * likeFeat + (1-beta_dist) * likeDist;
+            
+            likeTotal = beta_side * likeSide + (1-beta_side) * likeOff;
+            
+            probs(count) = lapse * lapseProb + (1-lapse) * likeTotal;
             count = count + 1;
         end
     end
@@ -139,6 +205,7 @@ if isnan(likelihood)
     stop = 1;
 end
 
+
 fit.probs = probs;
 fit.likelihood = likelihood;
 fit.params = params;
@@ -148,11 +215,36 @@ if computeOutput
     x = -pi:pi/128:pi;
     fit.x = x;
     
+    % set some arbitrary angles
+    tTheta = 0;
+    sTheta = -pi/2;
+    fTheta = pi*1/3;
+    dTheta = pi*2/3;
+    
     for tt = 1:length(fixedParams.trialTypes)
-        lapse = getLapse(params,tt);
         kappa = params.(sprintf('kappa%i',tt));
+        lapse = params.(sprintf('lapse%i',tt));
+        beta_side = params.(sprintf('beta_side%i',tt));
+        beta_feat = params.(sprintf('beta_feat%i',tt));
+        if fixedParams.bdist
+            beta_dist = params.(sprintf('beta_dist%i',tt));
+        else
+            beta_dist = params.beta_dist;
+        end
         
-        fit.out(tt,:) = lapse * lapseProb + (1-lapse) * vonMises(x,0,kappa);
+        % code from above
+%         % compute the likelihood for the target side
+        likeTarget = vonMises(x,tTheta,kappa);
+        likeSide = vonMises(x,sTheta,kappa);
+        likeFeat = vonMises(x,fTheta,kappa);
+        likeDist = vonMises(x,dTheta,kappa);
+% 
+        likeSide = beta_feat * likeTarget + (1-beta_feat) * likeSide;
+        likeOff = beta_dist * likeFeat + (1-beta_dist) * likeDist;
+% 
+        likeTotal = beta_side * likeSide + (1-beta_side) * likeOff;
+        
+        fit.out(tt,:) = lapse * lapseProb + (1-lapse) * likeTotal;
     end
 end
 
@@ -167,18 +259,6 @@ end
 
 
 
-
-
-
-
-function lapse = getLapse(params,tt)
-global fixedParams
-
-if fixedParams.lapseall
-    lapse = params.(sprintf('lapse%i',tt));
-else
-    lapse = params.lapse;
-end
 
 
 
