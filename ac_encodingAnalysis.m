@@ -16,6 +16,7 @@ cmap(1,:) = cmap_(1,:);
 
 alldata = [];
 
+infos = {};
 for si = 1:length(subjects)
     %% Load data
     [headers,adata,amt] = ac_loadBehavioralData(SIDs{si});
@@ -30,8 +31,8 @@ for si = 1:length(subjects)
     
     %% Display count
     disp(sprintf('Subject %s: %i trials',SIDs{si},size(adata,1)));
-
-    %% Fit model
+    
+    %% Setup model fits
     colordata = sel(adata,3,1); % report color
     dirdata = sel(adata,3,2);
     
@@ -43,13 +44,85 @@ for si = 1:length(subjects)
         for di = 1:length(durations)
             data = sel(adata,3,cues(ci));
             data = sel(data,4,durations(di));
-            fit{ci,di} = ac_fitEncodingModel(data,'nocv,bdist');%'nocv');
-            fit{ci,di}.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
+            info = struct;
+            info.data = data;
+            info.call = 'nocv,bdist';
+            info.ci = ci;
+            info.di = di;
+            info.subj = si;
+            info.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
+            infos{end+1} = info;
+%             fit{ci,di} = ac_fitEncodingModel(data,'nocv,bdist');%'nocv');
+            disp(sprintf('%s: %i trials',info.dataType,size(data,1)));
         end
     end
+end
 
+%% Add combined data fits
+% 
+for ci = 1:length(cues)
+    for di = 1:length(durations)
+        data = sel(alldata,3,cues(ci));
+        data = sel(data,4,durations(di));
+        info = struct;
+        info.data = data;
+        info.call = 'nocv,bdist';
+        info.ci = ci;
+        info.di = di;
+        info.subj = -1; % all subjects
+        info.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
+        infos{end+1} = info;
+    end
+end
+
+%% Do all the fits
+disp(sprintf('Running fits for %i runs',length(infos)));
+% sort by the number of trials in each one
+len = zeros(size(infos));
+for ii = 1:length(infos)
+    len(ii) = size(infos{ii}.data,1);
+end
+[~,idxs] = sort(len,'descend');
+infos = infos(idxs);
+% run the actual fitting procedure
+parfor ii = 1:length(infos)
+    infos{ii}.fit = ac_fitEncodingModel(infos{ii}.data,infos{ii}.call);
+    infos{ii}.fit.dataType = infos{ii}.dataType;
+end
+disp('Fits complete');
+
+%% Check that the fits 
+
+%% Sort all the fits
+
+allfits = {}; fits = {};
+for si = [-1 1:length(subjects)]
+    fit = {};
+    for ci = 1:length(cues)
+        for di = 1:length(durations)
+            for ii = 1:length(infos)
+                if infos{ii}.ci==ci && infos{ii}.di==di && infos{ii}.subj==si
+                    if si==-1
+                        allfit{ci,di} = infos{ii}.fit;
+                    else
+                        fit{ci,di} = infos{ii}.fit;
+                    end
+                end
+            end
+        end
+    end
+    if si>-1
+        fits{si} = fit;
+    end
+end
+
+%% Plot the fits
+% 
+% 
+for si = 1:length(subjects)
     %% Figure for each subject
     figure(1);
+    fit = fits{si};
     for ci = 1:length(cues)
         for di = 1:length(durations)
             subplot(length(subjects)+1,4,(si-1)*4+(ci-1)*2+di); % plot 1/2 are hard/easy COLOR, then DIRECTION
@@ -62,6 +135,11 @@ for si = 1:length(subjects)
                 end
             end
             axis([-pi pi 0 1.5]);
+            set(gca,'XTick',[-pi -pi/2 0 pi/2 pi],'XTickLabel',{'-pi','-pi/2','0','pi/2','pi'});
+            vline(-pi/2,'--k');
+            text(-pi/2,1.25,'side');
+            vline(pi*1/3,'--k');
+            vline(pi*2/3,'--k');
             if ci==1 && di==1
                 ylabel('PDF (a.u.)');
             end
@@ -71,38 +149,6 @@ for si = 1:length(subjects)
         end
     end
     legend(fliplr(p),fliplr(fit{1,1}.trialTypes));
-end
-
-%% ANALYSIS OF COMBINED DATA
-% 
-infos = {};
-for ci = 1:length(cues)
-    for di = 1:length(durations)
-        data = sel(alldata,3,cues(ci));
-        data = sel(data,4,durations(di));
-        info = struct;
-        info.data = data;
-        info.call = 'bdist';
-        info.ci = ci;
-        info.di = di;
-        info.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
-        infos{end+1} = info;
-    end
-end
-
-parfor ii = 1:length(infos)
-    infos{ii}.fit = ac_fitEncodingModel(infos{ii}.data,infos{ii}.call);
-    infos{ii}.fit.dataType = infos{ii}.dataType;
-end
-
-for ci = 1:length(cues)
-    for di = 1:length(durations)
-        for ii = 1:length(infos)
-            if infos{ii}.ci==ci && infos{ii}.di==di
-                fit{ci,di} = infos{ii}.fit;
-            end
-        end
-    end
 end
 % 
 % 
@@ -136,8 +182,8 @@ legend(fliplr(p),fliplr(fit{1,1}.trialTypes));
 % 
 % 
 % %%
-% h = figure(1);
-% savepdf(h,fullfile('~/proj/afcom/figures/basic_hist.pdf'));
+h = figure(1);
+savepdf(h,fullfile('~/proj/afcom/figures/encoding_VM.pdf'));
 % h = figure(2);
 % savepdf(h,fullfile('~/proj/afcom/figures/basic_VM.pdf'));
 % h = figure(3);
