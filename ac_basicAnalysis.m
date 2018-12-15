@@ -136,6 +136,8 @@ for si = 1:length(subjects)
             fit{ci,di}.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
         end
     end
+    
+    fits{si} = fit;
 
     %% Figure for each subject
     figure(2);
@@ -205,3 +207,9 @@ h = figure(2);
 savepdf(h,fullfile('~/proj/afcom/figures/basic_VM.pdf'));
 h = figure(3);
 savepdf(h,fullfile('~/proj/afcom/figures/basic_learn.pdf'));
+
+%% Generate subject data fits
+for si = 1:length(subjects)
+    h(si) = ac_plotADATA(headers,adatas{si},fits{si});
+    savepdf(h(si),fullfile('~/proj/afcom/figures/',sprintf('subj%i_basic.pdf',si)));
+end

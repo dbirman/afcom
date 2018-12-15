@@ -65,7 +65,7 @@ end
 %% PARAMETERS
 
 for tt = 1:length(fixedParams.trialTypes)
-    params.(sprintf('kappa%i',tt)) = [5 0 100 0.5 20];
+    params.(sprintf('kappa%i',tt)) = [5 0.1 100 0.5 20];
     params.(sprintf('lapse%i',tt)) = [0.1 0 1 0 0.7];
     params.(sprintf('beta_side%i',tt)) = [0.75 0 1 0.5 1];
     params.(sprintf('beta_feat%i',tt)) = [0.75 0 1 0.5 1];

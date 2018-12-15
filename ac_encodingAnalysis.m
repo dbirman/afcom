@@ -15,6 +15,7 @@ cmap(2,:) = cmap_(8,:);
 cmap(1,:) = cmap_(1,:);
 
 alldata = [];
+adatas = {};
 
 infos = {};
 for si = 1:length(subjects)
@@ -23,6 +24,9 @@ for si = 1:length(subjects)
    
     %% Remove dead trials
     adata = adata(~adata(:,5),:);
+    
+    %% Save
+    adatas{si} = adata;
     
     %% Concatenate w/ all data
     if size(adata,1)>400
