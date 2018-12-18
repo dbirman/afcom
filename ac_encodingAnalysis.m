@@ -50,7 +50,7 @@ for si = 1:length(subjects)
             data = sel(data,4,durations(di));
             info = struct;
             info.data = data;
-            info.call = 'nocv,bdist';
+            info.call = 'nocv,bdist,bads';
             info.ci = ci;
             info.di = di;
             info.subj = si;
@@ -70,7 +70,7 @@ for ci = 1:length(cues)
         data = sel(data,4,durations(di));
         info = struct;
         info.data = data;
-        info.call = 'nocv,bdist';
+        info.call = 'nocv,bdist,bads';
         info.ci = ci;
         info.di = di;
         info.subj = -1; % all subjects
@@ -150,6 +150,7 @@ for si = 1:length(subjects)
             if si==1
                 title(sprintf('%s report %s',durationType{di},reportType{ci}));
             end
+            drawPublishAxis('figSize=[30,30]');
         end
     end
     legend(fliplr(p),fliplr(fit{1,1}.trialTypes));
@@ -157,11 +158,14 @@ end
 % 
 % 
 %% Figure for all subject
-
-figure(1);
+figure(2);
+diffs = {'easy','hard'};
+cues = {'color','direction'};
+% figure(1);
 for ci = 1:length(cues)
     for di = 1:length(durations)
-        subplot(length(subjects)+1,4,length(subjects)*4+(ci-1)*2+di); % plot 1/2 are hard/easy COLOR, then DIRECTION
+        subplot(2,2,(ci-1)*2+di);
+%         subplot(length(subjects)+1,4,length(subjects)*4+(ci-1)*2+di); % plot 1/2 are hard/easy COLOR, then DIRECTION
         hold on
         for tt = 1:5
             if any(tt==[1 4 5])
@@ -170,6 +174,7 @@ for ci = 1:length(cues)
                 p(tt) = plot(fit{ci,di}.x,fit{ci,di}.out(tt,:),'Color',cmap(tt,:),'LineWidth',2);
             end
         end
+        title(sprintf('%s: %s',diffs{di},cues{ci}));
         axis([-pi pi 0 1.5]);
         set(gca,'XTick',[-pi -pi/2 0 pi/2 pi],'XTickLabel',{'-pi','-pi/2','0','pi/2','pi'});
         vline(-pi/2,'--k');
@@ -180,14 +185,15 @@ for ci = 1:length(cues)
         if ci==1 && di==1
             ylabel('PDF (a.u.)');
         end
+        drawPublishAxis('figSize=[30,30]');
     end
 end
 legend(fliplr(p),fliplr(fit{1,1}.trialTypes));
 % 
 % 
 % %%
-h = figure(1);
-savepdf(h,fullfile('~/proj/afcom/figures/encoding_VM.pdf'));
+h = figure(2);
+savepdf(h,fullfile('~/proj/afcom/figures/encoding_VM_all.pdf'));
 % h = figure(2);
 % savepdf(h,fullfile('~/proj/afcom/figures/basic_VM.pdf'));
 % h = figure(3);

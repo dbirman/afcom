@@ -1,4 +1,4 @@
-function h = ac_plotADATA(headers,adata,fit)
+function h = ac_plotADATA(~,adata,fit)
 % Plot the adata structure showing the different conditions as histograms.
 % Optional argument takes in a fit (from basic or encoding models) and
 % plots those on top of the histograms.
@@ -85,7 +85,7 @@ for tt = 0:4
 end
 
 function phelper_(dat,tt,bins)
-
+%%
 global cmap
 hold on
 

@@ -48,7 +48,7 @@ end
 %% PARAMETERS
 
 for tt = 1:length(fixedParams.trialTypes)
-    params.(sprintf('kappa%i',tt)) = [5 0 inf 0.5 20];
+    params.(sprintf('kappa%i',tt)) = [5 0.1 inf 0.5 20];
     if fixedParams.lapseall
         params.(sprintf('lapse%i',tt)) = [0.1 0 1 0 0.7];
     end

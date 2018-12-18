@@ -132,7 +132,7 @@ for si = 1:length(subjects)
         for di = 1:length(durations)
             data = sel(adata,3,cues(ci));
             data = sel(data,4,durations(di));
-            fit{ci,di} = ac_fitVonMises(data,'nocv');%'nocv');
+            fit{ci,di} = ac_fitVonMises(data,'bads,nocv');%'nocv');
             fit{ci,di}.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
         end
     end
