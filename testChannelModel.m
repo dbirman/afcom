@@ -120,3 +120,39 @@ parfor i = 1:100
     disp(sprintf('Readout angle %1.2f rad',readang));
     d(i) = angdist(stims(1,2),readang);
 end
+
+
+%% New approach: create a von Mises distribution representing the 'encoding' of each variable
+% weight these distributions at the encoding stage
+% re-weight the readout after selecting for a range of possible responses
+% then convert to likelihood and model
+
+x = 0:pi/128:2*pi;
+% let's say a trial has up/down motion and four random colors, the encoding
+% distribution for colors is:
+cK = 1;
+cM = 1;
+color = [rand rand rand rand]*2*pi;
+motion = [0 pi 0 pi];
+side = [-1 -1 1 1];
+lenc = []; renc = [];
+for i = 1:4
+    if side(i) == -1
+        l_f(end+1,:) = vonMises(x,color(i),cK);
+    else
+        renc(1,end+1,:) = vonMises(x,color(i),cK);
+    end
+end
+
+% create a single encoding
+lenc = squeeze(mean(lenc,2));
+renc = squeeze(mean(renc,2));
+
+%% Plot encodings
+figure;
+subplot(1,2,1);
+hold on
+plot(lenc');
+subplot(1,2,2);
+hold on
+plot(renc');

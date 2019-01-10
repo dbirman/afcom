@@ -38,6 +38,9 @@ for si = 1:length(subjects)
         alldata = [alldata ; adata];
     end
     
+    %% Save for all
+    adatas{si} = adata;
+    
     %% Display count
     disp(sprintf('Subject %s: %i trials',SIDs{si},size(adata,1)));
     
@@ -170,7 +173,7 @@ for ci = 1:length(cues)
     for di = 1:length(durations)
         data = sel(alldata,3,cues(ci));
         data = sel(data,4,durations(di));
-        fit{ci,di} = ac_fitVonMises(data,'nocv');
+        fit{ci,di} = ac_fitVonMises(data,'bads,nocv');
         fit{ci,di}.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
     end
 end
@@ -199,7 +202,12 @@ for ci = 1:length(cues)
 end
 legend(fliplr(p),fliplr(fit{1,1}.trialTypes));
 
+%% Save Fits
+save(fullfile('~/Box Sync/AFCOM_DATA/basic_fits.mat'),'fits');
 
+%% Load
+
+load(fullfile('~/Box Sync/AFCOM_DATA/basic_fits.mat'));
 %%
 h = figure(1);
 savepdf(h,fullfile('~/proj/afcom/figures/basic_hist.pdf'));
@@ -213,3 +221,44 @@ for si = 1:length(subjects)
     h(si) = ac_plotADATA(headers,adatas{si},fits{si});
     savepdf(h(si),fullfile('~/proj/afcom/figures/',sprintf('subj%i_basic.pdf',si)));
 end
+
+%% Pull the Kappa parameter
+for si = 1:length(subjects)
+    fit = fits{si};
+    for ci = 1:2
+        for di = 1:2
+            kappa5(si,ci,di) = fit{ci,di}.params.kappa5;
+            lapse5(si,ci,di) = fit{ci,di}.params.lapse5;
+        end
+    end
+end
+
+mu = squeeze(mean(kappa5));
+
+mu = 1./mu;
+
+%% Compare to Josh's results
+coh = [    0.1000    0.2000    0.4000    0.6000    0.8000    1.0000];
+kappa = [    4.9500   19.6700   36.1700   45.8900   39.9200   36.1100];
+
+h = figure; hold on
+plot(coh,1./kappa,'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor',[0.5 0.5 0.5]);
+dif = {'easy','hard'};
+report = {'color','dir'};
+pos = [0.1 0.2 0.3 0.4]+0.3;
+for ci = 1:2
+    for di = 1:2
+        hline(mu(ci,di),'--k');
+        text(pos((ci-1)*2+di),mu(ci,di)+0.05,sprintf('%s: %s',report{ci},dif{di}));
+    end
+end
+
+x = 0:.01:1;
+plot(x,0.05+0.2*exp(-x*10));
+
+axis([0 1 0 1]);
+xlabel('Coherence');
+ylabel('Kappa');
+drawPublishAxis;
+
+savepdf(h,fullfile('~/proj/afcom/figures/','cross_exp_comparison.pdf'));
