@@ -240,7 +240,7 @@ if computeOutput
         likeDist = vonMises(x,dTheta,kappa);
 % 
         likeSide = beta_feat * likeTarget + (1-beta_feat) * likeSide;
-        likeOff = beta_dist * likeFeat + (1-beta_dist) * likeDist;
+        likeOff = (1-beta_dist) * likeFeat + beta_dist * likeDist;
 % 
         likeTotal = beta_side * likeSide + (1-beta_side) * likeOff;
         

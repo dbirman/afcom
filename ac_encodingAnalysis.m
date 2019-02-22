@@ -107,7 +107,7 @@ for si = [-1 1:length(subjects)]
             for ii = 1:length(infos)
                 if infos{ii}.ci==ci && infos{ii}.di==di && infos{ii}.subj==si
                     if si==-1
-                        allfit{ci,di} = infos{ii}.fit;
+                        allfits{ci,di} = infos{ii}.fit;
                     else
                         fit{ci,di} = infos{ii}.fit;
                     end
@@ -119,6 +119,14 @@ for si = [-1 1:length(subjects)]
         fits{si} = fit;
     end
 end
+
+%% Save the fits
+
+save(fullfile('~/proj/afcom/encoding_data.mat'),'fits','allfits');
+
+%% Load the fits
+
+load(fullfile('~/proj/afcom/encoding_data.mat'));
 
 %% Plot the fits
 % 
@@ -155,6 +163,9 @@ for si = 1:length(subjects)
     end
     legend(fliplr(p),fliplr(fit{1,1}.trialTypes));
 end
+
+h = figure(1);
+savepdf(h,fullfile('~/proj/afcom/figures/encoding_indiv.pdf'));
 % 
 % 
 %% Figure for all subject
@@ -176,15 +187,17 @@ for ci = 1:length(cues)
         end
         title(sprintf('%s: %s',diffs{di},cues{ci}));
         axis([-pi pi 0 1.5]);
-        set(gca,'XTick',[-pi -pi/2 0 pi/2 pi],'XTickLabel',{'-pi','-pi/2','0','pi/2','pi'});
+%         set(gca,'XTick',[-pi -pi/2 0 pi/2 pi],'XTickLabel',{'-pi','-pi/2','0','pi/2','pi'});
+        set(gca,'XTick',[-pi -pi/2 0 pi/2 pi],'XTickLabel',{'-180','-90','0','90','180'});
         vline(-pi/2,'--k');
         text(-pi/2,1.25,'side');
         vline(pi*1/3,'--k');
         vline(pi*2/3,'--k');
         xlabel('Distance from target (deg)');
-        if ci==1 && di==1
-            ylabel('PDF (a.u.)');
-        end
+        ylabel('PDF (a.u.)');
+%         if ci==1 && di==1
+%             ylabel('PDF (a.u.)');
+%         end
         drawPublishAxis('figSize=[30,30]');
     end
 end
