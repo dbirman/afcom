@@ -8,16 +8,18 @@ figure(1); clf;
 
 cmap_ = colorblindmap/255;
 
+clear cmap;
 cmap(5,:) = [0.5 0.5 0.5];
 cmap(4,:) = cmap_(7,:);
 cmap(3,:) = cmap_(4,:);
 cmap(2,:) = cmap_(8,:);
 cmap(1,:) = cmap_(1,:);
+cues = [1 2];
 
 alldata = [];
 adatas = {};
-
 infos = {};
+
 for si = 1:length(subjects)
     %% Load data
     [headers,adata,amt] = ac_loadBehavioralData(SIDs{si});
@@ -40,7 +42,6 @@ for si = 1:length(subjects)
     colordata = sel(adata,3,1); % report color
     dirdata = sel(adata,3,2);
     
-    cues = [1 2];
     reportType = {'color','direction'};
     durations = [1 0.25];
     durationType = {'easy','hard'};
@@ -50,7 +51,7 @@ for si = 1:length(subjects)
             data = sel(data,4,durations(di));
             info = struct;
             info.data = data;
-            info.call = 'nocv,bdist,bads';
+            info.call = 'nocv,bdist,bads,multikappa';
             info.ci = ci;
             info.di = di;
             info.subj = si;
@@ -70,7 +71,7 @@ for ci = 1:length(cues)
         data = sel(data,4,durations(di));
         info = struct;
         info.data = data;
-        info.call = 'nocv,bdist,bads';
+        info.call = 'nocv,bdist,bads,multikappa';
         info.ci = ci;
         info.di = di;
         info.subj = -1; % all subjects

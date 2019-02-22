@@ -65,7 +65,16 @@ end
 %% PARAMETERS
 
 for tt = 1:length(fixedParams.trialTypes)
-    params.(sprintf('kappa%i',tt)) = [5 0.1 100 0.5 20];
+    if ~isempty(strfind(mode,'multikappa'))
+        types = {'target','side','feat','dist'};
+        for ti = 1:length(types)
+            params.(sprintf('kappa%i_%s',tt,types{ti})) = [5 0.1 100 0.5 20];
+        end
+        fixedParams.multikappa = true;
+    else
+        params.(sprintf('kappa%i',tt)) = [5 0.1 100 0.5 20];
+        fixedParams.multikappa = false;
+    end
     params.(sprintf('lapse%i',tt)) = [0.1 0 1 0 0.7];
     params.(sprintf('beta_side%i',tt)) = [0.75 0 1 0.5 1];
     params.(sprintf('beta_feat%i',tt)) = [0.75 0 1 0.5 1];
@@ -143,7 +152,9 @@ for tt = 1:length(fixedParams.trialTypes)
     trialType = fixedParams.trialTypeVals(tt);
     tdata = sel(adata,2,trialType);
     
-    kappa = params.(sprintf('kappa%i',tt));
+    if ~fixedParams.multikappa
+        kappa = params.(sprintf('kappa%i',tt));
+    end
     lapse = params.(sprintf('lapse%i',tt));
     beta_side = params.(sprintf('beta_side%i',tt));
     beta_feat = params.(sprintf('beta_feat%i',tt));
@@ -182,10 +193,17 @@ for tt = 1:length(fixedParams.trialTypes)
             aIdxs = [8 9 10 11];
             
             % compute the likelihood for the target side
-            likeTarget = vonMises(trial(12),trial(aIdxs(trial(1))),kappa);
-            likeSide = vonMises(trial(12),trial(aIdxs(side)),kappa);
-            likeFeat = vonMises(trial(12),trial(aIdxs(feat)),kappa);
-            likeDist = vonMises(trial(12),trial(aIdxs(dist)),kappa);
+            if ~fixedParams.multikappa
+                likeTarget = vonMises(trial(12),trial(aIdxs(trial(1))),kappa);
+                likeSide = vonMises(trial(12),trial(aIdxs(side)),kappa);
+                likeFeat = vonMises(trial(12),trial(aIdxs(feat)),kappa);
+                likeDist = vonMises(trial(12),trial(aIdxs(dist)),kappa);
+            else
+                likeTarget = vonMises(trial(12),trial(aIdxs(trial(1))),params.(sprintf('kappa%i_target',tt)));
+                likeSide = vonMises(trial(12),trial(aIdxs(side)),params.(sprintf('kappa%i_side',tt)));
+                likeFeat = vonMises(trial(12),trial(aIdxs(feat)),params.(sprintf('kappa%i_feat',tt)));
+                likeDist = vonMises(trial(12),trial(aIdxs(dist)),params.(sprintf('kappa%i_dist',tt)));
+            end
             
             likeSide = beta_feat * likeTarget + (1-beta_feat) * likeSide;
             likeOff = beta_dist * likeFeat + (1-beta_dist) * likeDist;
@@ -222,7 +240,9 @@ if computeOutput
     dTheta = pi*2/3;
     
     for tt = 1:length(fixedParams.trialTypes)
-        kappa = params.(sprintf('kappa%i',tt));
+        if ~fixedParams.multikappa
+            kappa = params.(sprintf('kappa%i',tt));
+        end
         lapse = params.(sprintf('lapse%i',tt));
         beta_side = params.(sprintf('beta_side%i',tt));
         beta_feat = params.(sprintf('beta_feat%i',tt));
@@ -234,10 +254,17 @@ if computeOutput
         
         % code from above
 %         % compute the likelihood for the target side
-        likeTarget = vonMises(x,tTheta,kappa);
-        likeSide = vonMises(x,sTheta,kappa);
-        likeFeat = vonMises(x,fTheta,kappa);
-        likeDist = vonMises(x,dTheta,kappa);
+        if ~fixedParams.multikappa
+            likeTarget = vonMises(x,tTheta,kappa);
+            likeSide = vonMises(x,sTheta,kappa);
+            likeFeat = vonMises(x,fTheta,kappa);
+            likeDist = vonMises(x,dTheta,kappa);
+        else
+                likeTarget = vonMises(x,tTheta,params.(sprintf('kappa%i_target',tt)));
+                likeSide = vonMises(x,sTheta,params.(sprintf('kappa%i_side',tt)));
+                likeFeat = vonMises(x,fTheta,params.(sprintf('kappa%i_feat',tt)));
+                likeDist = vonMises(x,dTheta,params.(sprintf('kappa%i_dist',tt)));
+        end
 % 
         likeSide = beta_feat * likeTarget + (1-beta_feat) * likeSide;
         likeOff = (1-beta_dist) * likeFeat + beta_dist * likeDist;
