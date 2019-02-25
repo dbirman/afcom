@@ -1,6 +1,6 @@
 function cmap = ac_cmap
 
-map = colorblindmap;
+map = colorblindmap/255;
 
 cmap.target = map(2,:);
 cmap.side = map(3,:);
