@@ -123,11 +123,11 @@ end
 
 %% Save the fits
 
-save(fullfile('~/proj/afcom/encoding_data.mat'),'fits','allfits');
+save(fullfile('~/proj/afcom/tcc_data.mat'),'fits','allfits');
 
 %% Load the fits
 
-load(fullfile('~/proj/afcom/encoding_data.mat'));
+load(fullfile('~/proj/afcom/tcc_data.mat'));
 
 %% Plot the fits
 % 

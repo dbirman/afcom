@@ -145,6 +145,9 @@ probs = zeros(size(adata,1),1);
 
 x = 0:pi/16:2*pi;
 
+% precompute normcdf for a very large range
+% x = -10
+
 tic
 for ai = 1:size(adata,1)
     trial = adata(ai,:);
