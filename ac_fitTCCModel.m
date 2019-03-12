@@ -215,62 +215,8 @@ if computeOutput
     x = -pi:pi/128:pi;
     fit.x = x;
     
-    % set some arbitrary angles
-    tTheta = 0;
-    sTheta = -pi/2;
-    fTheta = pi*1/3;
-    dTheta = pi*2/3;
     
-    fit.out = [];
-%     for tt = 1:length(fixedParams.trialTypes)
-%         if ~fixedParams.multikappa
-%             kappa = params.(sprintf('kappa%i',tt));
-%         end
-%         lapse = params.(sprintf('lapse%i',tt));
-%         beta_side = params.(sprintf('beta_side%i',tt));
-%         beta_feat = params.(sprintf('beta_feat%i',tt));
-%         if fixedParams.bdist
-%             beta_dist = params.(sprintf('beta_dist%i',tt));
-%         else
-%             beta_dist = params.beta_dist;
-%         end
-%         
-%         % code from above
-% %         % compute the likelihood for the target side
-%         if ~fixedParams.multikappa
-%             likeTarget = vonMises(x,tTheta,kappa);
-%             likeSide = vonMises(x,sTheta,kappa);
-%             likeFeat = vonMises(x,fTheta,kappa);
-%             likeDist = vonMises(x,dTheta,kappa);
-%         else
-%                 likeTarget = vonMises(x,tTheta,params.(sprintf('kappa%i_target',tt)));
-%                 likeSide = vonMises(x,sTheta,params.(sprintf('kappa%i_side',tt)));
-%                 likeFeat = vonMises(x,fTheta,params.(sprintf('kappa%i_feat',tt)));
-%                 likeDist = vonMises(x,dTheta,params.(sprintf('kappa%i_dist',tt)));
-%         end
-% % 
-%         likeSide = beta_feat * likeTarget + (1-beta_feat) * likeSide;
-%         likeOff = (1-beta_dist) * likeFeat + beta_dist * likeDist;
-% % 
-%         likeTotal = beta_side * likeSide + (1-beta_side) * likeOff;
-%         
-%         fit.out(tt,:) = lapse * lapseProb + (1-lapse) * likeTotal;
-%     end
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 %% Helper routines
 

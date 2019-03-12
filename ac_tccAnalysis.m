@@ -2,7 +2,7 @@
 % Load the data and do some basic analyses for each subject.
 % (1) Check for bias in their response distribution.
 % (2) Fit a von Mises to each of the five conditions and compare these
-
+SF
 
 figure(1); clf;
 
