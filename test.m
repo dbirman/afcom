@@ -1,61 +1,49 @@
-x = 0:5:360;
-d = pscale(abs(x-180));
-% d = d./max(d);
+clear likee xs
+encs = 5:5:80;
+for ei = 1:length(encs)
+    enc = encs(ei);
+    x = linspace(0,180,enc);
+    d = 1-pscale(abs(x));
+    
+    % precompute normcdf
+    % xn = -10:.0001:10;
+    % y = normcdf(xn);
 
-dspace = 0:.1:3;
+    rangeNeeded = [];
 
-like = zeros(length(x),length(dspace));
+    % now compute the true likelihood function:
+    %  which is the probability that a given PDF is greater than ALL OTHER PDFs
+    %  we will do this in log likelihood space... 
+    dprimes = 0.05; %logspace(0,0.5,10);
+    % dprimes = 10;
+    like_ = zeros(length(x),length(dprimes));
+    legends = {};
+    for di = 1:length(dprimes)
+        dprime = dprimes(di);
+        for xi = 1:length(x)
 
-for xi = 1:length(x)
-    for di = 1:length(dspace)
-        like(xi,di) = normpdf(dspace(di),1-d(xi),1);
-    end
-end
-
-h = figure(1);
-imagesc(like);
-
-% precompute normcdf
-% xn = -10:.0001:10;
-% y = normcdf(xn);
-
-rangeNeeded = [];
-
-% now compute the true likelihood function:
-%  which is the probability that a given PDF is greater than ALL OTHER PDFs
-%  we will do this in log likelihood space... 
-dprimes = logspace(0,1,10);
-% dprimes = 10;
-like_ = zeros(length(x),length(dprimes));
-legends = {};
-for di = 1:length(dprimes)
-    dprime = dprimes(di);
-    for xi = 1:length(x)
-        dh = 1-d(xi);
-        for ci = 1:length(x)
-            if xi~=ci
-                dl = 1-d(ci);
-                % not the same row
-                like_(xi,di) = like_(xi,di) + log(normcdf(dprime*(dh-dl),0,1));
-                
-                % pre-calculated version
-%                 like_(xi,di) = like_(xi,di) + log(y(find(xn>=(dprime*(dh-dl)),1)));
-
-
-                rangeNeeded(end+1) = dprime*(dh-dl);
-                % equivalent to
-%                 like_(xi,di) = like_(xi,di) + log(normcdf(dh-dl,0,dprime));
-            end
+            like_(xi,di) = prod(normcdf(dprime*(d(xi)-d),0,1));
+    %         
+    %         like_(xi,di) = sum(log((normcdf(dprime*(d(xi)-d),0,1))));
         end
+        legends{end+1} = sprintf('d'' = %1.2f',dprime);
     end
-    legends{end+1} = sprintf('d'' = %1.2f',dprime);
+    xs{ei} = x;
+    likee{ei} = like_;
 end
 
 %%
 h = figure(2);
 clf
 hold on
-plot(like_);
+% normalize
+for e = 1:length(xs)
+    x = xs{e};
+    like_ = likee{e};
+    like_ = like_ ./ repmat(sum(like_),size(like_,1),1);
+    plot(x,like_);
+    
+end
 legend(legends);
 
 %% add a single gaussian
