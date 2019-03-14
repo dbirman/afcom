@@ -142,11 +142,8 @@ lapseProb = vonMises(0,0,0);
 % setup probabilities list
 probs = zeros(size(adata,1),1);
 
+% pdft = computePDF(params.
 
-x = 0:pi/16:2*pi;
-
-% precompute normcdf for a very large range
-% x = -10
 
 tic
 for ai = 1:size(adata,1)
@@ -219,6 +216,39 @@ if computeOutput
 end
 
 %% Helper routines
+
+function pdf = computePDF(dprime)
+
+% set up the encoders
+xs = 0:pi/64:pi;
+px = 1-pscale(xs*180/pi);
+px = px * dprime;
+% set up the encoder response-range
+rrange = -4:.2:4;
+dr = diff(rrange); dr = dr(1);
+
+% pre-compute the probability density functions
+pdf = zeros(length(px));
+
+for xi = 1:length(xs)
+    % for each x location, compute the probability that the encoder at this
+    % location exceeds all of the others
+    p = 0; 
+    for ri = 1:length(rrange)
+        % which response are we at
+        r = rrange(ri);
+        % get the probability of this response occurring at this x
+        cdf = normpdf(r,px(xi),1)*dr;
+        % compute the probability that every other x is below this value
+        for xi2 = 1:length(xs)
+            if xi~=xi2
+                cdf = cdf * normcdf(r,px(xi2),1);
+            end
+        end
+        p = p + cdf;
+    end
+    pdf(xi) = p;
+end
 
 function [initparams, minparams, maxparams, plb, pub] = initParams(params)
 
