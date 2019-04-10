@@ -71,10 +71,10 @@ for tt = 1:length(fixedParams.trialTypes)
     params.(sprintf('bf_%i',tt)) = [0.75 0 1 0.5 1];
     params.(sprintf('bi_%i',tt)) = [0.1 0 1 0 0.2];
     
-    params.(sprintf('dt_%i',tt)) = [2 0 50 0 5];
-    params.(sprintf('ds_%i',tt)) = [1 0 50 0 2];
-    params.(sprintf('df_%i',tt)) = [1 0 50 0 2];
-    params.(sprintf('di_%i',tt)) = [0.5 0 50 0 1];
+    params.(sprintf('dt_%i',tt)) = [2 0.01 10 1 3];
+    params.(sprintf('ds_%i',tt)) = [2 0.01 10 1 3];
+    params.(sprintf('df_%i',tt)) = [2 0.01 10 1 3];
+    params.(sprintf('di_%i',tt)) = [2 0.01 10 1 3];
 end
 
 % don't fit a bias
@@ -144,64 +144,89 @@ probs = zeros(size(adata,1),1);
 
 % pdft = computePDF(params.
 
+%% 
+% test code
+% xs = -pi:pi/64:pi;
+% dprimes = 0.2:0.5:3;
+% figure; hold on
+% legs = {};
+% clear out outs
+% for di = 1:length(dprimes)
+%     dprime = dprimes(di);
+%     tic
+%     out = computeTCCPDF(xs,dprime);
+%     toc
+%     outs{di} = out;
+%     sum(outs{di})
+%     plot(xs,out);
+%     legs{end+1} = sprintf('%1.2f',dprime);
+% end
+% legend(legs);
 
-tic
-for ai = 1:size(adata,1)
-    trial = adata(ai,:);
+%% Compute for each dprime parameter the likelihood functions
+xs = 0:pi/128:pi;
+for tt = 1:5
+    liket = computeTCCPDF(xs,params.(sprintf('dt_%i',tt)));
+    likes = computeTCCPDF(xs,params.(sprintf('ds_%i',tt)));
+    likef = computeTCCPDF(xs,params.(sprintf('df_%i',tt)));
+    likei = computeTCCPDF(xs,params.(sprintf('di_%i',tt)));
     
-    tt = trial(2)+1;
-    target = trial(1);
+    idxs = adata(:,2)==fixedParams.trialTypeVals(tt);
+    % get trials with this trial type
+    tdata = adata(idxs,:);
+    % for each trial, re-organize the angles so we can get the likelihoods
+    % each column is the target, side, feat, and irrelevant angles all in
+    % one calculation
+    angleOpts = [8     9    10    11
+                9     8    11    10
+                10    11     8     9
+                11    10     9     8];
     
-    angles = [8 9 10 11];
-    
-    switch target
-        case 1
-            side = 2;
-            feat = 3;
-            dist = 4;
-        case 2
-            side = 1;
-            feat = 4;
-            dist = 3;
-        case 3
-            side = 4;
-            feat = 1;
-            dist = 2;
-        case 4
-            side = 3;
-            feat = 2;
-            dist = 1;
+    angles = zeros(size(tdata,1),4);
+    for ti = 1:size(tdata,1)
+        trial = tdata(ti,:);
+        target = trial(1);
+        angles(ti,:) = trial(angleOpts(target,:));
     end
     
-    theta_t = trial(angles(target));
-    theta_s = trial(angles(side));
-    theta_f = trial(angles(feat));
-    theta_d = trial(angles(dist));
+    % rotate all the angles relative to the response angle 
+    angles = angdist(repmat(tdata(:,12),1,4),angles);
     
-    % compute the probability of choosing the response angle, given that
-    % you recalled the target P(R) = sum [ normcdf ( dt * 
-    p_r_t = prod(normcdf(params.(sprintf('dt_%i',tt)) * ((1-pscale(180/pi*abs(trial(12)-theta_t))) - (1-pscale(180/pi*abs(x-theta_t))))));
-    p_r_s = prod(normcdf(params.(sprintf('ds_%i',tt)) * ((1-pscale(180/pi*abs(trial(12)-theta_s))) - (1-pscale(180/pi*abs(x-theta_s))))));
-    p_r_f = prod(normcdf(params.(sprintf('df_%i',tt)) * ((1-pscale(180/pi*abs(trial(12)-theta_f))) - (1-pscale(180/pi*abs(x-theta_f))))));
-    p_r_d = prod(normcdf(params.(sprintf('di_%i',tt)) * ((1-pscale(180/pi*abs(trial(12)-theta_d))) - (1-pscale(180/pi*abs(x-theta_d))))));
+    like = zeros(size(angles));
+    % compute the probability that the response angle was pulled from this
+    % distribution
+    like(:,1) = interp1(xs,liket,angles(:,1),'linear');
+    like(:,2) = interp1(xs,likes,angles(:,2),'linear');
+    like(:,3) = interp1(xs,likef,angles(:,3),'linear');
+    like(:,4) = interp1(xs,likei,angles(:,4),'linear');
     
-    % get the betas
+    % weight the likelihoods by the beta values
     bs = params.(sprintf('bs_%i',tt));
     bf = params.(sprintf('bf_%i',tt));
     bi = params.(sprintf('bi_%i',tt));
+    betas = [bs*bf bs*(1-bf) (1-bs)*(1-bi) (1-bs)*bi];
     
-    % compute the full probability by weighting these values 
-    probs(ai) = bs * (bf*p_r_t + (1-bf)*p_r_s) + (1-bs) * (bi*p_r_d + (1-bi)*p_r_f);
+    trial_likelihoods = like * betas';
+    
+    probs(idxs) = trial_likelihoods;
+    
+    if any(trial_likelihoods==0)
+        stop =1 ;
+    end
 end
-toc
 
 likelihood = -nansum(log(probs));
+
+if isinf(likelihood)
+    warning('Likelihood evaluated to Inf');
+    probs(probs==0) = eps;
+    likelihood = -nansum(log(probs));
+end
 
 if isnan(likelihood)
     warning('Likelihood evaluated to NaN');
     stop = 1;
 end
-
 
 fit.probs = probs;
 fit.likelihood = likelihood;
@@ -217,39 +242,9 @@ end
 
 %% Helper routines
 
-function pdf = computePDF(dprime)
-
-% set up the encoders
-xs = 0:pi/64:pi;
-px = 1-pscale(xs*180/pi);
-px = px * dprime;
-% set up the encoder response-range
-rrange = -4:.2:4;
-dr = diff(rrange); dr = dr(1);
-
-% pre-compute the probability density functions
-pdf = zeros(length(px));
-
-for xi = 1:length(xs)
-    % for each x location, compute the probability that the encoder at this
-    % location exceeds all of the others
-    p = 0; 
-    for ri = 1:length(rrange)
-        % which response are we at
-        r = rrange(ri);
-        % get the probability of this response occurring at this x
-        cdf = normpdf(r,px(xi),1)*dr;
-        % compute the probability that every other x is below this value
-        for xi2 = 1:length(xs)
-            if xi~=xi2
-                cdf = cdf * normcdf(r,px(xi2),1);
-            end
-        end
-        p = p + cdf;
-    end
-    pdf(xi) = p;
-end
-
+function d = angdist(t1,t2)
+d = acos(cos(t1).*cos(t2)+sin(t1).*sin(t2));
+%%
 function [initparams, minparams, maxparams, plb, pub] = initParams(params)
 
 global fixedParams
