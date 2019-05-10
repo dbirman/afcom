@@ -3,7 +3,7 @@ function y = pscale(x,inv)
 % NAKA RUSHTON VERSION
 
 rmax = 1.025;
-n = 2; 
+n = 2.5; 
 c50 = 30;
 b = 0;
 

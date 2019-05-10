@@ -11,6 +11,9 @@ function like = computeTCCPDF(rads,dprime)
 %   likelihood - the likelihood that the TCC model will sample each x,
 %                normalized
 
+if iscolumn(rads)
+    rads = rads';
+end
 % set up the encoders
 px = 1-pscale(abs(rads)*180/pi);
 % px = px * dprime;
@@ -36,5 +39,6 @@ for xi = pxidxs
 end
 
 if sum(like)<0.99
+    like = eps*ones(size(like));
     warning('Sum of TCC likelihood is not close enough to 1, the range may not be appropriate');
 end
