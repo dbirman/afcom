@@ -88,7 +88,11 @@ end
 
 % BADS VERSION
 if strfind(mode,'bads')
-    bestparams = bads(@(p) vmlike(p,adata,0),ip,minp,maxp,plb,pub); %[],[],[],[],minp,maxp,[],[]);
+    warning('Tolerance size is large: reduce for main fits');
+    options.TolMesh = 0.2;
+    options.MaxFunEvals = 600;
+    
+    bestparams = bads(@(p) vmlike(p,adata,0),ip,minp,maxp,plb,pub,[],options);
 
 % FMINCON VERSION
 else
@@ -154,7 +158,7 @@ probs = zeros(size(adata,1),1);
 % for di = 1:length(dprimes)
 %     dprime = dprimes(di);
 %     tic
-%     out = computeTCCPDF(xs,dprime);
+%     out = preComputeTCCPDF(xs,dprime);
 %     toc
 %     outs{di} = out;
 %     sum(outs{di})
@@ -166,10 +170,10 @@ probs = zeros(size(adata,1),1);
 %% Compute for each dprime parameter the likelihood functions
 xs = 0:pi/128:pi;
 for tt = 1:5
-    liket = computeTCCPDF(xs,params.(sprintf('dt_%i',tt)));
-    likes = computeTCCPDF(xs,params.(sprintf('ds_%i',tt)));
-    likef = computeTCCPDF(xs,params.(sprintf('df_%i',tt)));
-    likei = computeTCCPDF(xs,params.(sprintf('di_%i',tt)));
+    liket = preComputeTCCPDF(xs,params.(sprintf('dt_%i',tt)));
+    likes = preComputeTCCPDF(xs,params.(sprintf('ds_%i',tt)));
+    likef = preComputeTCCPDF(xs,params.(sprintf('df_%i',tt)));
+    likei = preComputeTCCPDF(xs,params.(sprintf('di_%i',tt)));
     
     idxs = adata(:,2)==fixedParams.trialTypeVals(tt);
     % get trials with this trial type
@@ -236,8 +240,36 @@ if computeOutput
     
     x = -pi:pi/128:pi;
     fit.x = x;
+    fit.trialTypes = fixedParams.trialTypes;
+    fit.targetOrder = {'target','side','feature','distractor'};
     
+    out = zeros(5,4,length(x));
+    % for each trial type, compute the likelihood function?
+    for tt = 1:5
+        tx = 0:pi/128:pi;
+        liket = computeTCCPDF(tx,params.(sprintf('dt_%i',tt)));
+        liket = [fliplr(liket) liket(2:end)];
+        likes = computeTCCPDF(tx,params.(sprintf('ds_%i',tt)));
+        likes = [fliplr(likes) likes(2:end)];
+        likef = computeTCCPDF(tx,params.(sprintf('df_%i',tt)));
+        likef = [fliplr(likef) likef(2:end)];
+        likei = computeTCCPDF(tx,params.(sprintf('di_%i',tt)));
+        likei = [fliplr(likei) likei(2:end)];
+        
+        bs = params.(sprintf('bs_%i',tt));
+        bf = params.(sprintf('bf_%i',tt));
+        bi = params.(sprintf('bi_%i',tt));
+        betas = [bs*bf bs*(1-bf) (1-bs)*(1-bi) (1-bs)*bi];
+        % scale the likelihood functions 
+        
+        % target/side/feat/dist
+        out(tt,1,:) = bs*bf*liket;
+        out(tt,2,:) = bs*(1-bf)*likes;
+        out(tt,3,:) = (1-bs)*(1-bi)*likef;
+        out(tt,4,:) = (1-bs)*bi*likei;
+    end
     
+    fit.out = out;
 end
 
 %% Helper routines

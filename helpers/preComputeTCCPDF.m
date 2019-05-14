@@ -1,4 +1,3 @@
-
 function probs = preComputeTCCPDF(rads,dprimes)
 %% RETURN PRECOMPUTED *interpolated* TCCPDF
 % This function is a very fast version of computeTCCPDF. The first time
@@ -6,8 +5,17 @@ function probs = preComputeTCCPDF(rads,dprimes)
 % functions pre-computed over a reasonably wide range. It then uses interp2
 % to interpolate the likelihood across this space. 
 
+if length(dprimes)==1
+    repmat(dprimes,size(rads));
+end
+
 global tccLike
-clear tccLike
+
+if ~isfield(tccLike,'now') || ((now-tccLike.now)>(1/24))
+    % clear if it's been more than an hour
+    tccLike = struct;
+end
+
 fname = fullfile('~/data/afcom_avg/','tcc.mat');
 % either create from scratch or load if the file exists
 if ~isfile(fname)
@@ -28,9 +36,9 @@ if ~isfile(fname)
 %         surf(tccLike.xs,tccLike.dprimes,tccLike.like);
     % save
     save(fname,'-struct','tccLike');
+elseif isempty(fields(tccLike))
+    tccLike = load(fname);
 end
-
-tccLike = load(fname);
 
 probs = interp2(tccLike.xs,tccLike.dprimes,tccLike.like,rads,dprimes);
 

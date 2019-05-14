@@ -148,3 +148,74 @@ end
 %% Test the full model fit
 fit = aca_fitTCCModel(adata,'nocv,bads',[]);
 aca_plotTCCModel(fit);
+
+
+
+%% example plot for poster
+cmap = brewermap(15,'RdYlGn');
+
+% plot a TCC channel model, showing the activation of different units 
+units = -pi:(2*pi/14):pi;
+units = sort(units);
+x = -pi:pi/128:pi;
+
+h = figure(2); clf; hold on
+vline(0,'--k');
+for ui = 1:length(units)
+    mu = units(ui);
+    profile = 1-pscale(abs(x-mu)*180/pi);
+    % compute my activation at 0
+    activation = 1-pscale(abs(mu)*180/pi);
+    plot(x,profile,'-','Color',cmap(ui,:));
+end
+for ui = 1:length(units)
+    mu = units(ui);
+    profile = 1-pscale(abs(x-mu)*180/pi);
+    % compute my activation at 0
+    activation = 1-pscale(abs(mu)*180/pi);
+    plot([mu 0],[activation activation],'--','Color',cmap(ui,:));
+end
+for ui = 1:length(units)
+    mu = units(ui);
+    profile = 1-pscale(abs(x-mu)*180/pi);
+    % compute my activation at 0
+    activation = 1-pscale(abs(mu)*180/pi);
+    plot(mu,activation,'o','MarkerFaceColor',cmap(ui,:),'MarkerEdgeColor','w','MarkerSize',5);
+end
+
+ylabel('Tuning profile (a.u.)');
+xlabel('Distance from presented stimulus (deg)');
+axis([-pi pi -0.1 1.1]);
+set(gca,'XTick',[-pi 0 pi]);
+set(gca,'YTick',[0 1]);
+drawPublishAxis('figSize=[15,3]');
+
+savepdf(h,fullfile('~/proj/afcom/figures/','TCC model.pdf'));
+
+%% same example plot, but with just the activations + noise
+
+cmap = brewermap(15,'RdYlGn');
+
+% plot a TCC channel model, showing the activation of different units 
+units = -pi:(2*pi/14):pi;
+units = sort(units);
+x = -pi:pi/128:pi;
+
+h = figure(2); clf; hold on
+for ui = 1:length(units)
+    mu = units(ui);
+    profile = 1-pscale(abs(x-mu)*180/pi);
+    % compute my activation at 0
+    activation = 1-pscale(abs(mu)*180/pi);
+    plot(mu,activation,'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',5);
+    errbar(mu,activation,0.2,'-k');
+end
+
+ylabel('Tuning profile (a.u.)');
+xlabel('Distance from presented stimulus (deg)');
+axis([-pi pi -0.3 1.3]);
+set(gca,'XTick',[-pi 0 pi]);
+set(gca,'YTick',[0 1]);
+drawPublishAxis('figSize=[5,3]');
+
+savepdf(h,fullfile('~/proj/afcom/figures/','TCC activations.pdf'));

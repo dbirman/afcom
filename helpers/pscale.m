@@ -1,4 +1,4 @@
-function y = pscale(x,inv)
+function y = pscale(x)
 
 if all(abs(x)<pi)
     warning('You called p-scale and passed in what appear to be radians, converting to degrees');

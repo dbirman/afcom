@@ -1,5 +1,5 @@
 %% Plot a TCC distribution using lines
-dprimes = [0.6 0.95];%.25:2;
+dprimes = [1.58 1.43];%.25:2;
 
 
 h = figure;
@@ -44,4 +44,4 @@ for di = 1:length(dprimes)
     
 end
 
-savepdf(h,fullfile('~/proj/afcom/figures/dprime_comparison_duration.pdf'));
+savepdf(h,fullfile('~/proj/afcom/figures/dprime_comparison_aca.pdf'));
