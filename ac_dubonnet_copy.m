@@ -5,5 +5,5 @@ system(call);
 
 dfolder = '~/data/afcom_avg/';
 
-call = sprintf('rsync -azP gru@dubonnet.stanford.edu:%s ~/data',dfolder);
+call = sprintf('rsync -azP gru@dubonnet.stanford.edu:%s %s',dfolder,dfolder);
 system(call);

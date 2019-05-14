@@ -1,4 +1,3 @@
-
 function like = computeTCCPDF(rads,dprime)
 %% COMPUTE TCCPDF
 % Usage: likelihood = computeTCCPDF(xs,dprime)
@@ -10,6 +9,12 @@ function like = computeTCCPDF(rads,dprime)
 % Outputs:
 %   likelihood - the likelihood that the TCC model will sample each x,
 %                normalized
+
+if dprime==0
+    like = ones(size(rads));
+    like = like./sum(like);
+    return
+end
 
 if iscolumn(rads)
     rads = rads';

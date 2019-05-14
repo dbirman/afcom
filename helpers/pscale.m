@@ -1,10 +1,14 @@
 function y = pscale(x,inv)
 
+if all(abs(x)<pi)
+    warning('You called p-scale and passed in what appear to be radians, converting to degrees');
+    x = x*180/pi;
+end
 % NAKA RUSHTON VERSION
 
-rmax = 1.025;
-n = 2.5; 
-c50 = 30;
+rmax = 1.1;
+n = 1.5; 
+c50 = 35;
 b = 0;
 
 y = rmax * x.^n ./ (x.^n + c50^n) + b;
@@ -61,24 +65,28 @@ y = y./max(y);
 
 clf
 hold on
-plot(data(:,1),data(:,2),'--r');
+plot(data(:,1),data(:,2),'or');
 plot(x,y);
 plot([0 180],[0 1],'--k');
 
 %% naka-rushton version
-rmax = 1.025;
-n = 2; 
-c50 = 30
+rmax = 1.1;
+n = 1.5; 
+c50 = 35;
 b = 0;
 
 y = rmax * x.^n ./ (x.^n + c50^n) + b;
-
+h = figure;
 clf
 hold on
-plot(data(:,1),data(:,2),'--r');
-plot(x,y);
-plot([0 180],[0 1],'--k');
-
+plot(data(:,1),data(:,2),'ok');
+plot(x,y,'-k');
+xlabel('Distance between reference and mean of pair (deg)');
+ylabel('Psychological distance');
+legend({'Data from Schurgin et al.','Fit of a sigmoidal function'});
+drawPublishAxis('figSize=[12,10]');
+% plot([0 180],[0 1],'--k');
+savepdf(h,fullfile('~/proj/afcom/figures/psychdist.pdf'));
 
 %% test vonMises scaling
 figure(2);

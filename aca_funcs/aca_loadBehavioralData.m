@@ -22,7 +22,7 @@ end
 
 %% concatenate all trials
 pvars = {'target'};
-rvars = {'dead','duration','trialType','targetAngle','respAngle','respDistance'};
+rvars = {'dead','duration','trialType','targetAngle','respAngle','respDistance','target1','target2','angle1','angle2','angle3','angle4'};
 runs = [];
 
 header = [pvars rvars];
@@ -49,6 +49,12 @@ for run = 1:length(e)
 end
 
 eval('dur = duration;');
+
+% copy the target info
+for ai = 1:length(target1)
+    eval(sprintf('target1(ai) = angle%i(ai);',target1(ai)));
+    eval(sprintf('target2(ai) = angle%i(ai);',target2(ai)));
+end
 
 %% concatenate mouse tracks
 % amt = nan(length(target),maxTrackLength);
@@ -82,7 +88,11 @@ eval('dur = duration;');
 % amt = fliplr(amt);
 
 %% create one giant matrix, but just of a few variables that matter
-data = [runs' dead' trialType' respDistance' dur'];
+
+% pvars = {'target'};
+% rvars = {'dead','duration','trialType','targetAngle','respAngle','respDistance'};
+
+data = [runs' dead' trialType' respDistance' dur' target1' target2'];
 keepIdxs = ~data(:,2);
 data = data(keepIdxs,:);
 
