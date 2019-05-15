@@ -84,7 +84,7 @@ plot(x,y,'-k');
 xlabel('Distance between reference and mean of pair (deg)');
 ylabel('Psychological distance');
 legend({'Data from Schurgin et al.','Fit of a sigmoidal function'});
-drawPublishAxis('figSize=[12,10]');
+drawPublishAxis('figSize=[17,10]','poster=1');
 % plot([0 180],[0 1],'--k');
 savepdf(h,fullfile('~/proj/afcom/figures/psychdist.pdf'));
 

@@ -83,20 +83,20 @@ ps(2) = plot(xs,mean(acf),'o','MarkerFaceColor',cmap(3,:),'MarkerEdgeColor','w',
 % dp = fitTCC(dat_feature(:,4));
 % plot(xs,computeTCCPDF(xs,dp),'-k');
 % legend({num2str(dp)});
-ylabel('Probability density (a.u.)');
-xlabel('Response distance from target (degs)');
 
 % v = vline(median(dat_spatial(:,4)),'--');
 % set(v,'Color',cmap(2,:));
 % v = vline(median(dat_feature(:,4)),'--');
 % set(v,'Color',cmap(3,:));
+ylabel('Probability density (a.u.)');
+xlabel('Response distance from target (degs)');
 set(gca,'XTick',0:pi/4:pi,'XTickLabel',180/pi*(0:pi/4:pi));
 set(gca,'YTick',0:.1:.3);
 % vline(pi/2,'--r');
 legend(ps,{'Cue side','Cue color'});
 axis([0 pi -0.01 0.3]);
 
-drawPublishAxis('figSize=[30,20]','poster=1');
+drawPublishAxis('figSize=[40,15]','poster=1');
 
 savepdf(h,fullfile('~/proj/afcom/figures','aca.pdf'));
 
@@ -117,12 +117,14 @@ end
 legend(l);
 
 %% Block the data by duration quantile and plot 
-figure;
-xs = 0:pi/64:pi;
+h = figure; hold on
+xs = pi/64:pi/32:pi;
 
-dbins = linspace(0.25,0.75,8);
+cmap = brewermap(13,'Purples');
+cmap = cmap([7 13],:);
+
+dbins = linspace(0.25,0.75,3);
 for di = 2:length(dbins)
-    subplot(length(dbins)-1,1,di-1); hold on
     
     low = dbins(di-1);
     high = dbins(di);
@@ -130,25 +132,37 @@ for di = 2:length(dbins)
     idxs = (alldata(:,5)>=low).*(alldata(:,5)<high);
     dat = alldata(logical(idxs),:);
     
-    dp = fitTCC(dat(:,4));
-    plot(xs,computeTCCPDF(xs,dp),'-k');
+%     dp = fitTCC(dat(:,4));
+%     plot(xs,computeTCCPDF(xs,dp),'-k');
     
     [n,x] = hist(dat(:,4),xs);
     n = n./sum(n);
-    plot(x,n,'ok');
-    axis([0 pi 0 0.25]);
-    title(sprintf('%1.2f, dprime %1.2f',mid,dp));
+    plot(x,n,'o','MarkerFaceColor',cmap(di-1,:),'MarkerEdgeColor','w');
+%     title(sprintf('%1.2f, dprime %1.2f',mid,dp));
 end
+a = axis;
+axis([0 pi 0 a(4)]);
+legend({'0.25 - 0.5 s','0.5 - 0.75 s'});
+
+ylabel('Probability density (a.u.)');
+xlabel('Response distance from target (degs)');
+set(gca,'XTick',0:pi/4:pi,'XTickLabel',180/pi*(0:pi/4:pi));
+set(gca,'YTick',0:.1);
+
+drawPublishAxis('figSize=[20,15]','poster=1');
+
+savepdf(h,fullfile('~/proj/afcom/figures','duration.pdf'));
 
 %% Block the data by distance quantile and plot
-figure;
-xs = 0:pi/64:pi;
+h = figure; hold on
+xs = pi/64:pi/32:pi;
 
+cmap = brewermap(13,'Oranges');
+cmap = cmap([7 13],:);
 dist = angdist(alldata(:,6),alldata(:,7));
 
-dbins = linspace(0,0.75*pi,8);
+dbins = linspace(0,0.75*pi,3);
 for di = 2:length(dbins)
-    subplot(length(dbins)-1,1,di-1); hold on
     
     low = dbins(di-1);
     high = dbins(di);
@@ -156,15 +170,26 @@ for di = 2:length(dbins)
     idxs = (dist>=low).*(dist<high);
     dat = alldata(logical(idxs),:);
     
-    dp = fitTCC(dat(:,4));
-    plot(xs,computeTCCPDF(xs,dp),'-k');
+%     dp = fitTCC(dat(:,4));
+%     plot(xs,computeTCCPDF(xs,dp),'-k');
     
     [n,x] = hist(dat(:,4),xs);
     n = n./sum(n);
-    plot(x,n,'ok');
-    axis([0 pi 0 0.25]);
-    title(sprintf('%1.2f, dprime %1.2f',mid,dp));
+    plot(x,n,'o','MarkerFaceColor',cmap(di-1,:),'MarkerEdgeColor','w');
+%     title(sprintf('%1.2f, dprime %1.2f',mid,dp));
 end
+a = axis;
+axis([0 pi 0 a(4)]);
+legend({'0 - 67.5 deg','67.5 - 135 deg'});
+
+ylabel('Probability density (a.u.)');
+xlabel('Response distance from target (degs)');
+set(gca,'XTick',0:pi/4:pi,'XTickLabel',180/pi*(0:pi/4:pi));
+set(gca,'YTick',0:.1);
+
+drawPublishAxis('figSize=[20,15]','poster=1');
+
+savepdf(h,fullfile('~/proj/afcom/figures','distance.pdf'));
 
 %% Test the full model fit
 fit = aca_fitTCCModel(adata,'nocv,bads',[]);
@@ -175,7 +200,7 @@ aca_plotTCCModel(fit);
 %% example plot for poster
 cmap = brewermap(15,'RdYlGn');
 cmap = shift(cmap,[7,0]);
-cmap = cmap(1:13,:);
+cmap = cmap(1:12,:);
 
 % plot a TCC channel model, showing the activation of different units 
 units = -pi:(2*pi/(size(cmap,1)-1)):pi;
@@ -203,7 +228,7 @@ for ui = 1:length(units)
     profile = 1-pscale(abs(x-mu)*180/pi);
     % compute my activation at 0
     activation = 1-pscale(abs(mu)*180/pi);
-    plot(mu,activation,'o','MarkerFaceColor',cmap(ui,:),'MarkerEdgeColor','w','MarkerSize',5);
+    plot(mu,activation,'o','MarkerFaceColor',cmap(ui,:),'MarkerEdgeColor','w','MarkerSize',10);
 end
 
 ylabel('Tuning profile (a.u.)');
@@ -211,7 +236,7 @@ xlabel('Distance from presented stimulus (deg)');
 axis([-pi pi -0.1 1.1]);
 set(gca,'XTick',[-pi 0 pi]);
 set(gca,'YTick',[0 1]);
-drawPublishAxis('figSize=[50,10]','labelFontSize=18');
+drawPublishAxis('figSize=[25,10]','poster=1');
 
 savepdf(h,fullfile('~/proj/afcom/figures/','TCC model.pdf'));
 
@@ -240,5 +265,35 @@ axis([-pi pi -0.3 1.3]);
 set(gca,'XTick',[-pi 0 pi]);
 set(gca,'YTick',[0 1]);
 drawPublishAxis('figSize=[5,3]');
+
+savepdf(h,fullfile('~/proj/afcom/figures/','TCC activations.pdf'));
+
+
+cmap = brewermap(15,'RdYlGn');
+
+%% plot a TCC channel model, showing the activation of different units 
+units = -pi:(2*pi/14):pi;
+units = sort(units);
+x = -pi:pi/128:pi;
+
+h = figure(2); clf; hold on
+for ui = 1:length(units)
+    mu = units(ui);
+    % compute my activation at 0
+    activation = 1-pscale(abs(mu)*180/pi);
+    plot(mu,activation,'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',10);
+    errbar(mu,activation,0.2,'-k');
+    
+    activation = 1-pscale(abs(angdist(mu,0.75*pi))*180/pi);
+    plot(mu,activation,'o','MarkerFaceColor','r','MarkerEdgeColor','w','MarkerSize',10);
+    errbar(mu,activation,0.2,'-r');
+end
+
+ylabel('Tuning profile (a.u.)');
+xlabel('Distance from presented stimulus (deg)');
+axis([-pi pi -0.3 1.3]);
+set(gca,'XTick',[-pi 0 pi]);
+set(gca,'YTick',[0 1]);
+drawPublishAxis('figSize=[25,15]','poster=1');
 
 savepdf(h,fullfile('~/proj/afcom/figures/','TCC activations.pdf'));
