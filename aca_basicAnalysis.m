@@ -96,7 +96,7 @@ set(gca,'YTick',0:.1:.3);
 legend(ps,{'Cue side','Cue color'});
 axis([0 pi -0.01 0.3]);
 
-drawPublishAxis('figSize=[30,20]','labelFontSize=18','xLabelOffset=-6/64');
+drawPublishAxis('figSize=[30,20]','poster=1');
 
 savepdf(h,fullfile('~/proj/afcom/figures','aca.pdf'));
 
