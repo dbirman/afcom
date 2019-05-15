@@ -11,6 +11,8 @@ cmap(2,:) = cmap_(4,:);
 
 alldata = [];
 
+adatas = {};
+
 for si = 1:length(subjects)
     %% Load data
     mglSetSID(subjects(si));
@@ -18,6 +20,8 @@ for si = 1:length(subjects)
    
     %% Remove dead trials
     adata = adata(~adata(:,2),:);
+    
+    adatas{si} = adata;
     
     %% Remove the first two runs of each type
 %     runs = unique(adata(:,15));
@@ -33,49 +37,66 @@ for si = 1:length(subjects)
     end
 end
 
+%% Compute mean and SD for the histograms
+xs = pi/64:pi/32:pi;
+for ai = 1:length(adatas)
+    ds = adatas{ai}(adatas{ai}(:,3)==1,:);
+    df = adatas{ai}(adatas{ai}(:,3)==2,:);
+    
+    cs = hist(ds(:,4),xs);
+    cs = cs ./ sum(cs);
+    
+    cf = hist(df(:,4),xs);
+    cf = cf ./ sum(cf);
+    
+    acs(ai,:) = cs;
+    acf(ai,:) = cf;
+end
+
+% compute errbars
+cis = bootci(1000,@nanmean,acs);
+cif = bootci(1000,@nanmean,acf);
 %% Figure for all subject
 cmap = colorblindmap/255;
-dat_spatial = alldata(alldata(:,3)==1,:);
-dat_feature = alldata(alldata(:,3)==2,:);
 
-h = figure;
-subplot(211); hold on
-xs = pi/64:pi/32:pi;
-count = hist(dat_spatial(:,4),xs);
-count = count ./ sum(count);
-plot(xs,count,'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w','MarkerSize',8);
+offset = pi/128;
+
+h = figure; hold on
+% subplot(211); hold on
+errbar(xs+offset,mean(acs),cis(2,:)-mean(acs),'-','Color',cmap(2,:));
+ps(1) = plot(xs+offset,mean(acs),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w','MarkerSize',8);
 
 % add the model fit of the TCC model
-dp = fitTCC(dat_spatial(:,4));
-plot(xs,computeTCCPDF(xs,dp),'-k');
-legend({num2str(dp)});
+% dp = fitTCC(dat_spatial(:,4));
+% plot(xs,computeTCCPDF(xs,dp),'-k');
+% legend({num2str(dp)});
 ylabel('Probability density (a.u.)');
 xlabel('Response distance from target (degs)');
 
-axis([0 pi 0 0.2]);
-vline(median(dat_spatial(:,4)),'--r');
 % vline(pi/2,'--r');
-title('Cue side');
-
-drawPublishAxis;
 
 
-subplot(212); hold on
-count = hist(dat_feature(:,4),xs);
-count = count ./ sum(count);
-plot(xs,count,'o','MarkerFaceColor',cmap(3,:),'MarkerEdgeColor','w','MarkerSize',8);
+% subplot(212); hold on
+errbar(xs,mean(acf),cif(2,:)-mean(acf),'-','Color',cmap(3,:));
+ps(2) = plot(xs,mean(acf),'o','MarkerFaceColor',cmap(3,:),'MarkerEdgeColor','w','MarkerSize',8);
 
-dp = fitTCC(dat_feature(:,4));
-plot(xs,computeTCCPDF(xs,dp),'-k');
-legend({num2str(dp)});
+% dp = fitTCC(dat_feature(:,4));
+% plot(xs,computeTCCPDF(xs,dp),'-k');
+% legend({num2str(dp)});
 ylabel('Probability density (a.u.)');
 xlabel('Response distance from target (degs)');
 
-axis([0 pi 0 0.2]);
-vline(median(dat_feature(:,4)),'--r');
+% v = vline(median(dat_spatial(:,4)),'--');
+% set(v,'Color',cmap(2,:));
+% v = vline(median(dat_feature(:,4)),'--');
+% set(v,'Color',cmap(3,:));
+set(gca,'XTick',0:pi/4:pi,'XTickLabel',180/pi*(0:pi/4:pi));
+set(gca,'YTick',0:.1:.3);
 % vline(pi/2,'--r');
-title('Cue color');
-drawPublishAxis('figSize=[30,20]');
+legend(ps,{'Cue side','Cue color'});
+axis([0 pi -0.01 0.3]);
+
+drawPublishAxis('figSize=[30,20]','labelFontSize=18','xLabelOffset=-6/64');
 
 savepdf(h,fullfile('~/proj/afcom/figures','aca.pdf'));
 
@@ -153,9 +174,11 @@ aca_plotTCCModel(fit);
 
 %% example plot for poster
 cmap = brewermap(15,'RdYlGn');
+cmap = shift(cmap,[7,0]);
+cmap = cmap(1:13,:);
 
 % plot a TCC channel model, showing the activation of different units 
-units = -pi:(2*pi/14):pi;
+units = -pi:(2*pi/(size(cmap,1)-1)):pi;
 units = sort(units);
 x = -pi:pi/128:pi;
 
@@ -188,7 +211,7 @@ xlabel('Distance from presented stimulus (deg)');
 axis([-pi pi -0.1 1.1]);
 set(gca,'XTick',[-pi 0 pi]);
 set(gca,'YTick',[0 1]);
-drawPublishAxis('figSize=[15,3]');
+drawPublishAxis('figSize=[50,10]','labelFontSize=18');
 
 savepdf(h,fullfile('~/proj/afcom/figures/','TCC model.pdf'));
 
