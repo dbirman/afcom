@@ -130,8 +130,60 @@ load(fullfile('~/proj/afcom/tcc_data.mat'));
 
 %% Plot separated likelihood functions
 
-for ci = 1:2
-    for di = 1:2
+for ci = 2
+    for di = 2
         ac_plotSepLikes_tcc(allfits{ci,di});
     end
 end
+
+%% Load parameters from each subject
+% pull out the dprime for spatial and feature (dt)
+for ai = 1:5
+    for ci = 1:2
+        for di = 1:2
+            fit = fits{ai}{ci,di};
+            dt_all(ai,ci,di) = fit.params.dt_1;
+            dt_s(ai,ci,di) = fit.params.dt_2;
+            dt_f(ai,ci,di) = fit.params.dt_3;
+            dt_baseline(ai,ci,di) = fit.params.dt_5;
+        end
+    end
+    
+end
+% take the difference by condition
+diff = dt_s-dt_f;
+% reduce to the mean across difficulties and tasks for each subject
+diff = squeeze(mean(mean(diff,3),2));
+% bootstrap and plot
+diff_ = mean(diff);
+diff_ci = bootci(1000,@mean,diff);
+
+% for plotting
+dt_all = squeeze(mean(mean(dt_all,3),2));
+dt_s = squeeze(mean(mean(dt_s,3),2));
+dt_f = squeeze(mean(mean(dt_f,3),2));
+
+dt_all_ci = bootci(1000,@mean,dt_all);
+dt_s_ci = bootci(1000,@mean,dt_s);
+dt_f_ci = bootci(1000,@mean,dt_f);
+
+cmap = ac_cmap;
+h = figure; hold on
+errbar(1,mean(dt_all),dt_all_ci(2)-mean(dt_all),'-','Color',[0.75 0.75 0.75]);
+plot(1,dt_all,'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w');
+plot(1,mean(dt_all),'o','MarkerFaceColor',[0.75 0.75 0.75],'MarkerEdgeColor','w','MarkerSize',10);
+errbar(2,mean(dt_s),dt_s_ci(2)-mean(dt_s),'-','Color','k');
+plot(2,dt_s,'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w');
+plot(2,mean(dt_s),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',10);
+errbar(3,mean(dt_f),dt_f_ci(2)-mean(dt_f),'-','Color','k');
+plot(3,dt_f,'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w');
+plot(3,mean(dt_f),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',10);
+hline(mean(dt_baseline(:)),'--k');
+axis([0 3 0 2]);
+set(gca,'XTick',[1 2 3],'XTickLabel',{'Cue 4','Spatial','Feature'},'YTick',[0 1 2]);
+ylabel('Sensitivity (d'')');
+text(1,0.5,sprintf('Difference: %1.2f, 95%% CI [%1.2f, %1.2f]',diff_,diff_ci(1),diff_ci(2)));
+drawPublishAxis('figSize=[20,10]','poster=1');
+
+
+savepdf(h,fullfile('~/proj/afcom/figures','dprime.pdf'));

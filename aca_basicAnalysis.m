@@ -61,7 +61,7 @@ cmap = colorblindmap/255;
 
 offset = pi/128;
 
-h = figure; hold on
+h = figure(1); hold on
 % subplot(211); hold on
 errbar(xs+offset,mean(acs),cis(2,:)-mean(acs),'-','Color',cmap(2,:));
 ps(1) = plot(xs+offset,mean(acs),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w','MarkerSize',8);
@@ -96,9 +96,15 @@ set(gca,'YTick',0:.1:.3);
 legend(ps,{'Cue side','Cue color'});
 axis([0 pi -0.01 0.3]);
 
-drawPublishAxis('figSize=[40,15]','poster=1');
+drawPublishAxis('figSize=[40,12]','poster=1');
 
 savepdf(h,fullfile('~/proj/afcom/figures','aca.pdf'));
+
+%% plot the circular version of the above data
+cmap = colorblindmap/255;
+
+plot_tcc_data(xs,acs,cmap(2,:),'aca_spatial.pdf');
+plot_tcc_data(xs,acf,cmap(3,:),'aca_feature.pdf');
 
 %% Test
 figure;
@@ -149,7 +155,7 @@ xlabel('Response distance from target (degs)');
 set(gca,'XTick',0:pi/4:pi,'XTickLabel',180/pi*(0:pi/4:pi));
 set(gca,'YTick',0:.1);
 
-drawPublishAxis('figSize=[20,15]','poster=1');
+drawPublishAxis('figSize=[20,10]','poster=1');
 
 savepdf(h,fullfile('~/proj/afcom/figures','duration.pdf'));
 
@@ -187,7 +193,7 @@ xlabel('Response distance from target (degs)');
 set(gca,'XTick',0:pi/4:pi,'XTickLabel',180/pi*(0:pi/4:pi));
 set(gca,'YTick',0:.1);
 
-drawPublishAxis('figSize=[20,15]','poster=1');
+drawPublishAxis('figSize=[20,10]','poster=1');
 
 savepdf(h,fullfile('~/proj/afcom/figures','distance.pdf'));
 
@@ -195,105 +201,3 @@ savepdf(h,fullfile('~/proj/afcom/figures','distance.pdf'));
 fit = aca_fitTCCModel(adata,'nocv,bads',[]);
 aca_plotTCCModel(fit);
 
-
-
-%% example plot for poster
-cmap = brewermap(15,'RdYlGn');
-cmap = shift(cmap,[7,0]);
-cmap = cmap(1:12,:);
-
-% plot a TCC channel model, showing the activation of different units 
-units = -pi:(2*pi/(size(cmap,1)-1)):pi;
-units = sort(units);
-x = -pi:pi/128:pi;
-
-h = figure(2); clf; hold on
-vline(0,'--k');
-for ui = 1:length(units)
-    mu = units(ui);
-    profile = 1-pscale(abs(x-mu)*180/pi);
-    % compute my activation at 0
-    activation = 1-pscale(abs(mu)*180/pi);
-    plot(x,profile,'-','Color',cmap(ui,:));
-end
-for ui = 1:length(units)
-    mu = units(ui);
-    profile = 1-pscale(abs(x-mu)*180/pi);
-    % compute my activation at 0
-    activation = 1-pscale(abs(mu)*180/pi);
-    plot([mu 0],[activation activation],'--','Color',cmap(ui,:));
-end
-for ui = 1:length(units)
-    mu = units(ui);
-    profile = 1-pscale(abs(x-mu)*180/pi);
-    % compute my activation at 0
-    activation = 1-pscale(abs(mu)*180/pi);
-    plot(mu,activation,'o','MarkerFaceColor',cmap(ui,:),'MarkerEdgeColor','w','MarkerSize',10);
-end
-
-ylabel('Tuning profile (a.u.)');
-xlabel('Distance from presented stimulus (deg)');
-axis([-pi pi -0.1 1.1]);
-set(gca,'XTick',[-pi 0 pi]);
-set(gca,'YTick',[0 1]);
-drawPublishAxis('figSize=[25,10]','poster=1');
-
-savepdf(h,fullfile('~/proj/afcom/figures/','TCC model.pdf'));
-
-%% same example plot, but with just the activations + noise
-
-cmap = brewermap(15,'RdYlGn');
-
-% plot a TCC channel model, showing the activation of different units 
-units = -pi:(2*pi/14):pi;
-units = sort(units);
-x = -pi:pi/128:pi;
-
-h = figure(2); clf; hold on
-for ui = 1:length(units)
-    mu = units(ui);
-    profile = 1-pscale(abs(x-mu)*180/pi);
-    % compute my activation at 0
-    activation = 1-pscale(abs(mu)*180/pi);
-    plot(mu,activation,'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',5);
-    errbar(mu,activation,0.2,'-k');
-end
-
-ylabel('Tuning profile (a.u.)');
-xlabel('Distance from presented stimulus (deg)');
-axis([-pi pi -0.3 1.3]);
-set(gca,'XTick',[-pi 0 pi]);
-set(gca,'YTick',[0 1]);
-drawPublishAxis('figSize=[5,3]');
-
-savepdf(h,fullfile('~/proj/afcom/figures/','TCC activations.pdf'));
-
-
-cmap = brewermap(15,'RdYlGn');
-
-%% plot a TCC channel model, showing the activation of different units 
-units = -pi:(2*pi/14):pi;
-units = sort(units);
-x = -pi:pi/128:pi;
-
-h = figure(2); clf; hold on
-for ui = 1:length(units)
-    mu = units(ui);
-    % compute my activation at 0
-    activation = 1-pscale(abs(mu)*180/pi);
-    plot(mu,activation,'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',10);
-    errbar(mu,activation,0.2,'-k');
-    
-    activation = 1-pscale(abs(angdist(mu,0.75*pi))*180/pi);
-    plot(mu,activation,'o','MarkerFaceColor','r','MarkerEdgeColor','w','MarkerSize',10);
-    errbar(mu,activation,0.2,'-r');
-end
-
-ylabel('Tuning profile (a.u.)');
-xlabel('Distance from presented stimulus (deg)');
-axis([-pi pi -0.3 1.3]);
-set(gca,'XTick',[-pi 0 pi]);
-set(gca,'YTick',[0 1]);
-drawPublishAxis('figSize=[25,15]','poster=1');
-
-savepdf(h,fullfile('~/proj/afcom/figures/','TCC activations.pdf'));

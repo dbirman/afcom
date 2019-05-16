@@ -8,7 +8,7 @@ sgap = 0.005;
 bgap = 0.01;
 %% go through the five distributions and plot them on a figure
 % scale the distributions appropriately
-maxY = 0.05;
+maxY = 0.1;
 groups = {'cue_4','cue_side','cue_feat','cue_target','cue_1'};
 for tt = 1:5
     
@@ -21,7 +21,12 @@ for tt = 1:5
         % plot target
         subplot(3,4,ti); hold on
 
+        if tt<5 && ti==1
+            % also plot the cue_1 condition on top of this
+            plot(fit.x,squeeze(fit.out(5,ti,:)),'-','Color',[0.75 0.75 0.75]);
+        end
         plot(fit.x,squeeze(fit.out(tt,ti,:)),'-','Color',cmap.(targets{ti}));
+        
         
         axis([-pi pi 0 maxY]);
         set(gca,'XTick',[-pi 0 pi],'XTickLabel',[-180 0 180]);
@@ -31,7 +36,7 @@ for tt = 1:5
             ylabel('Response likelihood (pdf)');
             xlabel('Distance from stimulus angle');
         end
-        drawPublishAxis;
+        drawPublishAxis('poster=1');
     end
     
     bs = fit.params.(sprintf('bs_%i',tt));
@@ -54,7 +59,7 @@ for tt = 1:5
     set(gca,'XTick',[0 1],'XTickLabels',{'',''});
     set(gca,'YTick',[0 1],'YTickLabels',{'',''});
     
-    drawPublishAxis;
+    drawPublishAxis('poster=1');
     
     
     subplot(3,4,9:12); hold on
@@ -98,7 +103,7 @@ for tt = 1:5
     axis([0 1 -1 2]);
     set(gca,'XTick',[0 1],'XTickLabel',{'',''});
     set(gca,'YTick',[0 1],'YTickLabel',{'',''});
-    drawPublishAxis('figSize=[15,10]');
+    drawPublishAxis('figSize=[30,20]','poster=1');
     
     savepdf(h,fullfile('~/proj/afcom/figures',folder,sprintf('tcc_%s.pdf',groups{tt})));
 end
