@@ -46,4 +46,7 @@ end
 if sum(like)<0.99
     like = eps*ones(size(like));
     warning('Sum of TCC likelihood is not close enough to 1, the range may not be appropriate');
+elseif sum(like>1.01)
+    warning('Error');
+    stop = 1;
 end

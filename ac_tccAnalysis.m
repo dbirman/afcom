@@ -2,6 +2,7 @@
 % Load the data and do some basic analyses for each subject.
 % (1) Check for bias in their response distribution.
 % (2) Fit a von Mises to each of the five conditions and compare these
+ac_setup;
 
 figure(1); clf;
 
@@ -130,8 +131,8 @@ load(fullfile('~/proj/afcom/tcc_data.mat'));
 
 %% Plot separated likelihood functions
 
-for ci = 2
-    for di = 2
+for ci = 1:2
+    for di = 1:2
         ac_plotSepLikes_tcc(allfits{ci,di});
     end
 end

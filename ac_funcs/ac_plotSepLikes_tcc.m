@@ -17,6 +17,12 @@ for tt = 1:5
     cmap = ac_cmap;
     targets = {'target','side','feat','dist'};
     targetNames = {'Target','Same side','Same feature','Distractor'};
+    
+    bs = fit.params.(sprintf('bs_%i',tt));
+    bf = fit.params.(sprintf('bf_%i',tt));
+    bi = fit.params.(sprintf('bi_%i',tt));
+    betas = [bs*bf bs*(1-bf) (1-bs)*(1-bi) (1-bs)*bi];
+    
     for ti = 1:length(targets)
         % plot target
         subplot(3,4,ti); hold on
@@ -25,7 +31,9 @@ for tt = 1:5
             % also plot the cue_1 condition on top of this
             plot(fit.x,squeeze(fit.out(5,ti,:)),'-','Color',[0.75 0.75 0.75]);
         end
-        plot(fit.x,squeeze(fit.out(tt,ti,:)),'-','Color',cmap.(targets{ti}));
+        if betas(ti)>0.05
+            plot(fit.x,squeeze(fit.out(tt,ti,:)),'-','Color',cmap.(targets{ti}));
+        end
         
         
         axis([-pi pi 0 maxY]);
@@ -39,10 +47,6 @@ for tt = 1:5
         drawPublishAxis('poster=1');
     end
     
-    bs = fit.params.(sprintf('bs_%i',tt));
-    bf = fit.params.(sprintf('bf_%i',tt));
-    bi = fit.params.(sprintf('bi_%i',tt));
-    betas = [bs*bf bs*(1-bf) (1-bs)*(1-bi) (1-bs)*bi];
     
     subplot(3,4,5:8); hold on
     % plot the proportion that are on the correct side
@@ -84,7 +88,7 @@ for tt = 1:5
     % plot the offsides: (feature and distractor)
     feat = (1-bs)*(1-bi);
     dist = (1-bs)*bi;
-    if feat>0.01
+    if feat>0.015
         rectangle('Position',[target+side+bgap 0 feat-sgap-bgap 1],'FaceColor',cmap.feat,'Edgecolor','w');
         plot([target+side+bgap target+side+bgap target+side+feat-sgap target+side+feat-sgap],[0 1 1 0],'-k');
         if feat >0.04

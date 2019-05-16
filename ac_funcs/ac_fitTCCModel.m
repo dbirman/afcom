@@ -244,6 +244,7 @@ if computeOutput
     fit.targetOrder = {'target','side','feature','distractor'};
     
     out = zeros(5,4,length(x));
+    outs = out;
     % for each trial type, compute the likelihood function?
     for tt = 1:5
         tx = 0:pi/128:pi;
@@ -256,19 +257,30 @@ if computeOutput
         likei = computeTCCPDF(tx,params.(sprintf('di_%i',tt)));
         likei = [fliplr(likei) likei(2:end)];
         
+        % normalize everything
+        liket = liket./sum(liket);
+        likes = likes./sum(likes);
+        likef = likef./sum(likef);
+        likei = likei./sum(likei);
+        
         bs = params.(sprintf('bs_%i',tt));
         bf = params.(sprintf('bf_%i',tt));
         bi = params.(sprintf('bi_%i',tt));
-        betas = [bs*bf bs*(1-bf) (1-bs)*(1-bi) (1-bs)*bi];
         % scale the likelihood functions 
         
         % target/side/feat/dist
-        out(tt,1,:) = bs*bf*liket;
-        out(tt,2,:) = bs*(1-bf)*likes;
-        out(tt,3,:) = (1-bs)*(1-bi)*likef;
-        out(tt,4,:) = (1-bs)*bi*likei;
+        out(tt,1,:) = liket;
+        out(tt,2,:) = likes;
+        out(tt,3,:) = likef;
+        out(tt,4,:) = likei;
+        
+        outs(tt,1,:) = bs*bf*liket;
+        outs(tt,2,:) = bs*(1-bf)*likes;
+        outs(tt,3,:) = (1-bs)*(1-bi)*likef;
+        outs(tt,4,:) = (1-bs)*bi*likei;
     end
     
+    fit.outs = outs;
     fit.out = out;
 end
 

@@ -79,12 +79,15 @@ y = rmax * x.^n ./ (x.^n + c50^n) + b;
 h = figure;
 clf
 hold on
-plot(data(:,1),data(:,2),'ok');
 plot(x,y,'-k');
+plot(data(:,1),data(:,2),'o','MarkerFaceColor','k','MarkerEdgeColor','w');
 xlabel('Distance between reference and mean of pair (deg)');
 ylabel('Psychological distance');
+axis([0 180 0 1]);
+set(gca,'XTick',[0 90 180]);
+set(gca,'YTick',[0 1]);
 legend({'Data from Schurgin et al.','Fit of a sigmoidal function'});
-drawPublishAxis('figSize=[17,10]','poster=1');
+drawPublishAxis('figSize=[15,7]','poster=1');
 % plot([0 180],[0 1],'--k');
 savepdf(h,fullfile('~/proj/afcom/figures/psychdist.pdf'));
 
