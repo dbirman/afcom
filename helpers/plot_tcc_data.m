@@ -1,6 +1,10 @@
 function plot_tcc_data(xs,data,col,name)
 
-y = mean(data); % don't worry about error bars for now
+if size(data,1)>1
+    y = mean(data); % don't worry about error bars for now
+else
+    y = data;
+end
 
 %%
 % if the xs are only >0, then flip them

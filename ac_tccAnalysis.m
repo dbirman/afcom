@@ -131,8 +131,8 @@ load(fullfile('~/proj/afcom/tcc_data.mat'));
 
 %% Plot separated likelihood functions
 
-for ci = 1:2
-    for di = 1:2
+for ci = 2
+    for di = 2
         ac_plotSepLikes_tcc(allfits{ci,di});
     end
 end

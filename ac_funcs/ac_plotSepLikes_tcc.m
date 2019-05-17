@@ -8,7 +8,7 @@ sgap = 0.005;
 bgap = 0.01;
 %% go through the five distributions and plot them on a figure
 % scale the distributions appropriately
-maxY = 0.1;
+maxY = 0.05;
 groups = {'cue_4','cue_side','cue_feat','cue_target','cue_1'};
 for tt = 1:5
     

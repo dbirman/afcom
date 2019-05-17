@@ -86,8 +86,8 @@ ylabel('Psychological distance');
 axis([0 180 0 1]);
 set(gca,'XTick',[0 90 180]);
 set(gca,'YTick',[0 1]);
-legend({'Data from Schurgin et al.','Fit of a sigmoidal function'});
-drawPublishAxis('figSize=[15,7]','poster=1');
+legend({'Fit','Data from Schurgin et al.'});
+drawPublishAxis('figSize=[16,9]','poster=1');
 % plot([0 180],[0 1],'--k');
 savepdf(h,fullfile('~/proj/afcom/figures/psychdist.pdf'));
 
