@@ -201,3 +201,7 @@ savepdf(h,fullfile('~/proj/afcom/figures','distance.pdf'));
 fit = aca_fitTCCModel(adata,'nocv,bads',[]);
 aca_plotTCCModel(fit);
 
+
+%% Test the population variant model fit
+fit = aca_fitTCCPopulationModel(adata,'nocv,bads',[]);
+% aca_plotTCCModel(fit);
