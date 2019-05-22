@@ -111,18 +111,8 @@ params = getParams(params);
 
 % get the predicted likelihood for each response relative to the target
 % angle
-probs = nan(size(adata,1),1);
-count = 1;
-
-
-% data = [runs' dead' trialType' respDistance' dur' target1' target2'];
-
-% get the distance and duration to estimate dprime
-dprime = params.int + params.typeInt*(adata(:,3)-1) + params.bdur*adata(:,5) + params.bdist*angdist(adata(:,6),adata(:,7));
-% below zero = 0
-dprime(dprime<0) = 0;
-% compute the likelihood
-probs = preComputeTCCPDF(adata(:,4),dprime);
+probs = preComputeTCCPDF(adata(:,4),params.p);
+% probs = computeTCCfromPopulation(adata(:,4),params.sigma,params.p);
 
 
 likelihood = -nansum(log(probs));

@@ -14,6 +14,8 @@ if iscolumn(rads)
     rads = rads';
 end
 
+
+
 npop = 100;
 rpeaks = ((2*pi)/npop/2-pi):(2*pi/npop):pi;
 
@@ -24,35 +26,47 @@ end
 
 % weight the responses by the exponential
 weights = exp(-p*abs(rpeaks));
+weights = weights ./ sum(weights);
 
 like = responses * weights';
 
+stop = 1;
+
 %% test script
-% x = -pi:pi/128:pi;
-% 
-% stim = 0;
-% width = pi/6;
-% 
-% npop = 100;
-% rpeaks = ((2*pi)/npop/2-pi):(2*pi/npop):pi;
-% 
-% response = normpdf(rpeaks,rads,width);
-% 
-% weights = exp(-2*abs(rpeaks));
-% 
-% % build the responses
-% for ci = 0:(length(weights)-1)
-%     out(ci+1) = response * circshift(weights,[ci,0])';
-% end
-% 
-% figure(1);
-% clf
-% hold on
-% % plot(rpeaks,response,'ok');
-% out = response.*weights;
-% plot(rpeaks,out./sum(out),'-r');
-% 
-% % now plot the TCC model prediction
-% plot(rpeaks,computeTCCPDF(rpeaks,1.9),'-b');
-% 
-% legend({'Population readout','TCC'});
+% rads = -pi:pi/128:pi;
+rads = alldata(:,4);
+
+% pull out histogram
+xs = 0:pi/32:pi;
+[n,xs] = hist(rads,xs);
+
+p = 0.1;
+sigma = pi/8;
+
+
+npop = 100;
+rpeaks = ((2*pi)/npop/2-pi):(2*pi/npop):pi;
+
+responses = zeros(length(xs),length(rpeaks));
+for ri = 1:length(xs)
+    responses(ri,:) = normpdf(rpeaks,xs(ri),sigma);
+end
+
+% weight the responses by the exponential
+weights = normpdf(rpeaks,0,p);%rpeaks./sum(rpeaks);%exp(-p*abs(rpeaks));
+% weights = weights ./ sum(weights);
+
+like = responses * weights';
+
+figure(1);
+clf
+hold on
+
+plot(xs,n./sum(n),'ok');
+% plot(rpeaks,response,'ok');
+plot(xs,like./sum(like),'-r');
+
+% now plot the TCC model prediction
+plot(xs,computeTCCPDF(xs,1.6),'-b');
+
+legend({'Data','Population readout','TCC'});

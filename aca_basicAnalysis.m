@@ -205,3 +205,11 @@ aca_plotTCCModel(fit);
 %% Test the population variant model fit
 fit = aca_fitTCCPopulationModel(adata,'nocv,bads',[]);
 % aca_plotTCCModel(fit);
+
+%% test output from fit
+figure(1); clf; hold on
+xs = -pi:pi/128:pi;
+ys = computeTCCfromPopulation(xs,fitpop.params.sigma,fitpop.params.p);
+plot(xs,ys./sum(ys),'-b')
+ys2 = computeTCCPDF(xs,fit.params.p);
+plot(xs,ys2,'-r')

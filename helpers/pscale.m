@@ -91,26 +91,21 @@ drawPublishAxis('figSize=[16,9]','poster=1');
 % plot([0 180],[0 1],'--k');
 savepdf(h,fullfile('~/proj/afcom/figures/psychdist.pdf'));
 
-%% test vonMises scaling
-figure(2);
+%% test exponential version
+k = 40;
+y = 1-exp(-x/k);
 
-x = 0:pi/128:pi;
-y = vonMises(x,0,10)*0.8 + vonMises(x,0,0)*0.2;
-y = y ./ sum(y);
-
-xd = x.*(180/pi);
-xp = pscale(xd,false);
-
-y2 = normpdf(xp,0,0.25);
-y2 = y2 ./ sum(y2);
-
+h = figure(4);
 clf
 hold on
-subplot(411);
-plot(xd,y);
-subplot(412);
-plot(xp,y);
-subplot(413);
-plot(xp,y2);
-subplot(414);
-plot(xd,y2);
+plot(x,y,'-k');
+plot(data(:,1),data(:,2),'o','MarkerFaceColor','k','MarkerEdgeColor','w');
+xlabel('Distance between reference and mean of pair (deg)');
+ylabel('Psychological distance');
+axis([0 180 0 1]);
+set(gca,'XTick',[0 90 180]);
+set(gca,'YTick',[0 1]);
+legend({'Fit','Data from Schurgin et al.'});
+% drawPublishAxis('figSize=[16,9]','poster=1');
+% plot([0 180],[0 1],'--k');
+% savepdf(h,fullfile('~/proj/afcom/figures/psychdist.pdf'));
