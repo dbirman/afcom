@@ -26,6 +26,11 @@ fixedParams.trialTypes = {'all','spatial','feature','target','baseline'};
 fixedParams.trialTypeVals = [0 1 2 3 4];
 fixedParams.bdist = ~isempty(strfind(mode,'bdist'));
 
+if ~isempty(strfind(mode,'recovery'))
+    fixedParams.trialTypes = {'recovery'};
+    fixedParams.trialTypeVals = 0;
+end
+    
 %% TEST FIT
 if ~isempty(strfind(mode,'eval'))
     % evaluate fit of existing model
@@ -169,7 +174,7 @@ probs = zeros(size(adata,1),1);
 
 %% Compute for each dprime parameter the likelihood functions
 xs = 0:pi/128:pi;
-for tt = 1:5
+for tt = 1:length(fixedParams.trialTypes)
     liket = preComputeTCCPDF(xs,params.(sprintf('dt_%i',tt)));
     likes = preComputeTCCPDF(xs,params.(sprintf('ds_%i',tt)));
     likef = preComputeTCCPDF(xs,params.(sprintf('df_%i',tt)));
@@ -246,7 +251,7 @@ if computeOutput
     out = zeros(5,4,length(x));
     outs = out;
     % for each trial type, compute the likelihood function?
-    for tt = 1:5
+    for tt = 1:length(fixedParams.trialTypes)
         tx = 0:pi/128:pi;
         liket = computeTCCPDF(tx,params.(sprintf('dt_%i',tt)));
         liket = [fliplr(liket) liket(2:end)];
