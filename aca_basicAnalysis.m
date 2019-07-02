@@ -59,44 +59,26 @@ cif = bootci(1000,@nanmean,acf);
 %% Figure for all subject
 cmap = colorblindmap/255;
 
-offset = pi/128;
+poffset = 0.005;
+noffset = 0.005;
 
-h = figure(1); hold on
-% subplot(211); hold on
-errbar(xs+offset,mean(acs),cis(2,:)-mean(acs),'-','Color',cmap(2,:));
-ps(1) = plot(xs+offset,mean(acs),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w','MarkerSize',8);
+h = figure(1); clf; hold on
 
-% add the model fit of the TCC model
-% dp = fitTCC(dat_spatial(:,4));
-% plot(xs,computeTCCPDF(xs,dp),'-k');
-% legend({num2str(dp)});
+errbar(pscale(xs)+poffset,mean(acs),cis(2,:)-mean(acs),'-','Color',cmap(2,:));
+ps(1) = plot(pscale(xs)+poffset,mean(acs),'-','Color',cmap(2,:),'MarkerEdgeColor','w','MarkerSize',5);
+
+errbar(pscale(xs)-noffset,mean(acf),cif(2,:)-mean(acf),'-','Color',cmap(3,:));
+ps(2) = plot(pscale(xs)-noffset,mean(acf),'-','Color',cmap(3,:),'MarkerEdgeColor','w','MarkerSize',5);
+
 ylabel('Probability density (a.u.)');
-xlabel('Response distance from target (degs)');
-
-% vline(pi/2,'--r');
-
-
-% subplot(212); hold on
-errbar(xs,mean(acf),cif(2,:)-mean(acf),'-','Color',cmap(3,:));
-ps(2) = plot(xs,mean(acf),'o','MarkerFaceColor',cmap(3,:),'MarkerEdgeColor','w','MarkerSize',8);
-
-% dp = fitTCC(dat_feature(:,4));
-% plot(xs,computeTCCPDF(xs,dp),'-k');
-% legend({num2str(dp)});
-
-% v = vline(median(dat_spatial(:,4)),'--');
-% set(v,'Color',cmap(2,:));
-% v = vline(median(dat_feature(:,4)),'--');
-% set(v,'Color',cmap(3,:));
-ylabel('Probability density (a.u.)');
-xlabel('Response distance from target (degs)');
-set(gca,'XTick',0:pi/4:pi,'XTickLabel',180/pi*(0:pi/4:pi));
+xlabel('Response distance from target (normalized psychological distance)');
+set(gca,'XTick',0:0.2:1);
 set(gca,'YTick',0:.1:.3);
-% vline(pi/2,'--r');
-legend(ps,{'Cue side','Cue color'});
-axis([0 pi -0.01 0.3]);
 
-drawPublishAxis('figSize=[40,12]','poster=1');
+legend(ps,{'Cue side','Cue color'});
+axis([0 1 -0.01 0.3]);
+
+drawPublishAxis('figSize=[8.9,4.5]','poster=0','xLabelOffset=-6/64');
 
 savepdf(h,fullfile('~/proj/afcom/figures','aca.pdf'));
 
@@ -155,7 +137,7 @@ xlabel('Response distance from target (degs)');
 set(gca,'XTick',0:pi/4:pi,'XTickLabel',180/pi*(0:pi/4:pi));
 set(gca,'YTick',0:.1);
 
-drawPublishAxis('figSize=[20,10]','poster=1');
+drawPublishAxis('figSize=[20,10]','poster=0');
 
 savepdf(h,fullfile('~/proj/afcom/figures','duration.pdf'));
 
@@ -193,7 +175,7 @@ xlabel('Response distance from target (degs)');
 set(gca,'XTick',0:pi/4:pi,'XTickLabel',180/pi*(0:pi/4:pi));
 set(gca,'YTick',0:.1);
 
-drawPublishAxis('figSize=[20,10]','poster=1');
+drawPublishAxis('figSize=[20,10]','poster=0');
 
 savepdf(h,fullfile('~/proj/afcom/figures','distance.pdf'));
 
