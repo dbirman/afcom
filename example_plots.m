@@ -1,9 +1,12 @@
 
 
 %% example plot for poster
-cmap = brewermap(15,'RdYlGn');
-cmap = shift(cmap,[7,0]);
-cmap = cmap(1:13,:);
+cmap = colorblindmap/255;
+% cmap = brewermap(15,'RdYlGn');
+% cmap = shift(cmap,[7,0]);
+% cmap = cmap(1:13,:);
+
+gain = (pi-abs(units))/pi;
 
 % plot a TCC channel model, showing the activation of different units 
 units = -pi:(2*pi/(size(cmap,1)-1)):pi;
@@ -11,37 +14,57 @@ units = sort(units);
 x = -pi:pi/128:pi;
 
 h = figure(2); clf; 
-subplot(211); hold on
+subplot(311); hold on
 vline(0,'--k');
 for ui = 1:length(units)
     mu = units(ui);
-    profile = 1-pscale(abs(x-mu)*180/pi);
+    profile = vonMises(x,mu,20);
+    profile = profile ./ max(profile);
+    profile(profile<.001) = nan;
     % compute my activation at 0
     activation = 1-pscale(abs(mu)*180/pi);
-    plot(x,profile,'-','Color',cmap(ui,:));
+    plot(x,profile,'-','Color',cmap(1,:));
 end
 axis([-pi pi -0.1 1.1]);
 set(gca,'XTick',[-pi 0 pi],'XTickLabel',[-180 0 180]);
 set(gca,'YTick',[0 1]);
-drawPublishAxis('figSize=[25,10]','poster=1');
-subplot(212); hold on
+drawPublishAxis('figSize=[8.9,8.9]','poster=0');
+subplot(312); hold on
+vline(0,'--k');
 for ui = 1:length(units)
     mu = units(ui);
-    profile = 1-pscale(abs(x-mu)*180/pi);
+    profile = vonMises(x,mu,20);
+    profile = profile ./ max(profile);
+    profile(profile<.001) = nan;
     % compute my activation at 0
     activation = 1-pscale(abs(mu)*180/pi);
-    errbar(mu,activation,1,'-','Color',cmap(ui,:));
-    plot(mu,activation,'o','MarkerFaceColor',cmap(ui,:),'MarkerEdgeColor','w','MarkerSize',10);
+    plot(x,profile*gain(ui),'-','Color',cmap(6,:));
 end
+axis([-pi pi -0.1 1.1]);
+set(gca,'XTick',[-pi 0 pi],'XTickLabel',[-180 0 180]);
+set(gca,'YTick',[0 1]);
+drawPublishAxis('figSize=[8.9,8.9]','poster=0');
+subplot(313); hold on
+vline(0,'--k');
+units = units + fliplr(units)/2;
+for ui = 1:length(units)
+    mu = units(ui);
+    profile = vonMises(x,mu,20);
+    profile = profile ./ max(profile);
+    profile(profile<.001) = nan;
+    % compute my activation at 0
+    activation = 1-pscale(abs(mu)*180/pi);
+    plot(x,profile,'-','Color',cmap(7,:));
+end
+axis([-pi pi -0.1 1.1]);
+set(gca,'XTick',[-pi 0 pi],'XTickLabel',[-180 0 180]);
+set(gca,'YTick',[0 1]);
 
 ylabel('Channel activation (a.u.)');
 xlabel('Distance from presented stimulus (deg)');
-axis([-pi pi -1 2]);
-set(gca,'XTick',[-pi 0 pi],'XTickLabel',[-180 0 180]);
-set(gca,'YTick',[0 1]);
-drawPublishAxis('figSize=[20,13]','poster=1');
+drawPublishAxis('figSize=[4.5,4.5]','poster=0');
 
-savepdf(h,fullfile('~/proj/afcom/figures/','TCC model.pdf'));
+savepdf(h,fullfile('~/proj/afcom/figures/','TCC_channel_attention.pdf'));
 
 %% example plot with von mises
 h = figure;

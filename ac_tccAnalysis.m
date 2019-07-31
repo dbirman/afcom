@@ -29,6 +29,7 @@ for si = 1:length(subjects)
     
     %% Save
     adatas{si} = adata;
+    l(si) = size(adata,1);
     
     %% Concatenate w/ all data
     if size(adata,1)>400
@@ -131,7 +132,7 @@ load(fullfile('~/proj/afcom/tcc_data.mat'));
 
 %% Plot separated likelihood functions
 
-for ci = 2
+for ci = 1
     for di = 2
         ac_plotSepLikes_tcc(allfits{ci,di});
     end

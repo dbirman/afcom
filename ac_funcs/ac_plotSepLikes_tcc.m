@@ -25,30 +25,33 @@ for tt = 1:5
     
     for ti = 1:length(targets)
         % plot target
-        subplot(3,4,ti); hold on
+        subplot(2,5,[1 2 6 7]); hold on
+        
+        scaledx = pscale(abs(fit.x)*180/pi);
+        scaledx(fit.x<0) = -scaledx(fit.x<0);
 
         if tt<5 && ti==1
             % also plot the cue_1 condition on top of this
-            plot(fit.x,squeeze(fit.out(5,ti,:)),'-','Color',[0.75 0.75 0.75]);
+            plot(scaledx,squeeze(fit.out(5,ti,:)),'-','Color',[0.75 0.75 0.75]);
         end
         if betas(ti)>0.05
-            plot(fit.x,squeeze(fit.out(tt,ti,:)),'-','Color',cmap.(targets{ti}));
+            plot(scaledx,squeeze(fit.out(tt,ti,:)),'-','Color',cmap.(targets{ti}));
         end
         
         
-        axis([-pi pi 0 maxY]);
-        set(gca,'XTick',[-pi 0 pi],'XTickLabel',[-180 0 180]);
+        axis([-1 1 0 maxY]);
+        set(gca,'XTick',[-1 0 1],'XTickLabel',[-180 0 180]);
         set(gca,'YTick',[0 maxY],'YTickLabel',{'',''});
-        title(targetNames{ti});
+%         title(targetNames{ti});
         if ti==1
             ylabel('Response likelihood (pdf)');
-            xlabel('Distance from stimulus angle');
+            xlabel('Distance from stimulus angle (normalized psychological distance)');
         end
-        drawPublishAxis('poster=1');
+        drawPublishAxis('figSize=[8.9,2.5]','poster=0');
     end
     
     
-    subplot(3,4,5:8); hold on
+    subplot(2,5,3:5); hold on
     % plot the proportion that are on the correct side
     rectangle('Position',[0 0 bs-bgap 1],'FaceColor',[0.75 0.75 0.75],'EdgeColor','w');
     plot([0 0 bs-bgap bs-bgap],[0 1 1 0],'-k');
@@ -63,10 +66,11 @@ for tt = 1:5
     set(gca,'XTick',[0 1],'XTickLabels',{'',''});
     set(gca,'YTick',[0 1],'YTickLabels',{'',''});
     
-    drawPublishAxis('poster=1');
+    set(gca,'FontSize',7);
+    drawPublishAxis('figSize=[8.9,4.5]','poster=0');
     
     
-    subplot(3,4,9:12); hold on
+    subplot(2,5,8:10); hold on
     
     % plot the side: (target and side)
     target = bs*bf;
@@ -107,7 +111,8 @@ for tt = 1:5
     axis([0 1 -1 2]);
     set(gca,'XTick',[0 1],'XTickLabel',{'',''});
     set(gca,'YTick',[0 1],'YTickLabel',{'',''});
-    drawPublishAxis('figSize=[30,20]','poster=1');
+    set(gca,'FontSize',7);
+    drawPublishAxis('figSize=[8.9,2.5]');
     
     savepdf(h,fullfile('~/proj/afcom/figures',folder,sprintf('tcc_%s.pdf',groups{tt})));
 end
