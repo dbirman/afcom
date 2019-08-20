@@ -1,11 +1,11 @@
 %% Simulate data from the TCC model and explore whether the model routines can recover the parameters
 
-nTrials = 3000;
+nTrials = 1000;
 
 dpt = 2; % dprime of the target dot patch
-dps = 0.5; % dprime of the same-side
-dpf = 0.5; % dprime of the same-feature
-dpi = 0.5; % dprime of the irrelevant
+dps = 1; % dprime of the same-side
+dpf = 1; % dprime of the same-feature
+dpi = 1; % dprime of the irrelevant
 
 dprimes = [dpt dps dpf dpi];
 
@@ -44,12 +44,31 @@ for di = 1:size(angs,2)
     end
 end
 
+figure;
+subplot(221);
+imagesc(squeeze(likes(:,1,:)));
+title('Target');
+subplot(222);
+imagesc(squeeze(likes(:,2,:)));
+title('Side');
+subplot(223);
+imagesc(squeeze(likes(:,3,:)));
+title('Feature');
+subplot(224);
+imagesc(squeeze(likes(:,4,:)));
+title('Distractor');
+
 % now compute the full likelihood by collapsing over the four probabilities
 % for each trial, again we'll do it is a loop for clarity
 liket = zeros(size(likes,1),length(xs));
 for ai = 1:size(likes,1)
     liket(ai,:) = squeeze(likes(ai,:,:))' * probs';
 end
+
+figure;
+imagecs(liket);
+title('Full likelihood for each trial');
+
 % sample uniformly from each trial to generate data
 %   Columns 1 through 6
 % 
@@ -67,11 +86,15 @@ end
 % routines. The important stuff is target, trialType, cue, duration, dead,
 % angle1-4, respAngle. 
 adata = zeros(0,16);
+acs = cumsum(liket,2);
 for ai = 1:size(liket,1)
-    cs = cumsum(liket(ai,:));
+    cs = acs(ai,:);
     respAngle = interp1(cs,xs,rand*max(cs));
     adata(ai,:) = [1 0 0 1 0 angs(ai,1) nan angs(ai,:) respAngle angdist(respAngle,angs(ai,1)) nan 1 1];
 end
+
+figure;
+hist(adata(:,12));
 
 %% Fit the data with the model:
 fit = ac_fitTCCModel(adata,'nocv,bads,recovery');

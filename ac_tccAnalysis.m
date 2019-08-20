@@ -4,16 +4,6 @@
 % (2) Fit a von Mises to each of the five conditions and compare these
 ac_setup;
 
-figure(1); clf;
-
-cmap_ = colorblindmap/255;
-
-clear cmap;
-cmap(5,:) = [0.5 0.5 0.5];
-cmap(4,:) = cmap_(7,:);
-cmap(3,:) = cmap_(4,:);
-cmap(2,:) = cmap_(8,:);
-cmap(1,:) = cmap_(1,:);
 cues = [1 2];
 
 alldata = [];
@@ -22,16 +12,30 @@ infos = {};
 
 for si = 1:length(subjects)
     %% Load data
-    [headers,adata,amt] = ac_loadBehavioralData(SIDs{si});
+    [headers,adata] = ac_loadBehavioralData(SIDs{si});
+    
+% avars = {'target','trialType','cue','duration','dead','targetAngle','distractorAngle','angle1','angle2','angle3',...
+%     'angle4','respAngle','respDistance','distDistance'};
+
+% TARGET TRIALTYPE CUE DURATION DEAD TARGETANGLE DISTRACTORANGLE
+%    1      2       3     4       5       6           7
+% ANGLE1 ANGLE2 ANGLE3 ANGLE4 RESPANGLE RESPDISTANCE DISTDISTANCE RUNS RT
+%    8      9     10     11      12          13            14      15  16
    
     %% Remove dead trials
+    disp(sprintf('Dropping %i trials that included eye movements',sum(adata(:,5))));
     adata = adata(~adata(:,5),:);
+    
+    %% Remove any trials with duration > 0.3 (these were "easy" trials in the initial versions)
+    disp(sprintf('Dropping %i trials from training or easy mode',sum(adata(:,4)>0.3)));
+    adata = adata(adata(:,4)<=0.3,:);
     
     %% Save
     adatas{si} = adata;
     
     %% Concatenate w/ all data
-    if size(adata,1)>400
+    if size(adata,1)>250
+        disp(sprintf('Adding data to alldata'));
         alldata = [alldata ; adata];
     end
     
@@ -43,22 +47,26 @@ for si = 1:length(subjects)
     dirdata = sel(adata,3,2);
     
     reportType = {'color','direction'};
-    durations = [1 0.25];
-    durationType = {'easy','hard'};
+    durations = [0.25 0.3];
+    durationType = {'hard1','hard2'};
     for ci = 1:length(cues)
         for di = 1:length(durations)
             data = sel(adata,3,cues(ci));
             data = sel(data,4,durations(di));
-            info = struct;
-            info.data = data;
-            info.call = 'nocv,bads';
-            info.ci = ci;
-            info.di = di;
-            info.subj = si;
-            info.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
-            infos{end+1} = info;
-%             fit{ci,di} = ac_fitEncodingModel(data,'nocv,bdist');%'nocv');
-            disp(sprintf('%s: %i trials',info.dataType,size(data,1)));
+            if size(data,1)>0
+                info = struct;
+                info.data = data;
+                info.call = 'nocv,bads';
+                info.ci = ci;
+                info.di = di;
+                info.subj = si;
+                info.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
+                infos{end+1} = info;
+    %             fit{ci,di} = ac_fitEncodingModel(data,'nocv,bdist');%'nocv');
+                disp(sprintf('%s: %i trials',info.dataType,size(data,1)));
+            else
+                disp(sprintf('%s: skipping',sprintf('%s report %s',durationType{di},reportType{ci})));
+            end
         end
     end
 end
@@ -77,6 +85,7 @@ for ci = 1:length(cues)
         info.subj = -1; % all subjects
         info.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
         infos{end+1} = info;
+        disp(sprintf('ALLDATA %s: %i trials',info.dataType,size(data,1)));
     end
 end
 

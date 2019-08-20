@@ -2,6 +2,10 @@
 % Load the data and do some basic analyses for each subject.
 % (1) Check for bias in their response distribution.
 % (2) Fit a von Mises to each of the five conditions and compare these
+
+aca_setup;
+
+
 addpath(genpath('~/proj/afcom'));
 
 cmap_ = colorblindmap/255;
@@ -54,8 +58,8 @@ for ai = 1:length(adatas)
 end
 
 % compute errbars
-cis = bootci(1000,@nanmean,acs);
-cif = bootci(1000,@nanmean,acf);
+cis = bootci(10000,@nanmean,acs);
+cif = bootci(10000,@nanmean,acf);
 %% Figure for all subject
 cmap = colorblindmap/255;
 
@@ -125,17 +129,17 @@ for di = 2:length(dbins)
     
     [n,x] = hist(dat(:,4),xs);
     n = n./sum(n);
-    plot(x,n,'o','MarkerFaceColor',cmap(di-1,:),'MarkerEdgeColor','w');
+    plot(pscale(x),n,'-','Color',cmap(di-1,:),'MarkerEdgeColor','w');
 %     title(sprintf('%1.2f, dprime %1.2f',mid,dp));
 end
 a = axis;
-axis([0 pi 0 a(4)]);
+axis([0 1 0 a(4)]);
 legend({'0.25 - 0.5 s','0.5 - 0.75 s'});
 
 ylabel('Probability density (a.u.)');
-xlabel('Response distance from target (degs)');
-set(gca,'XTick',0:pi/4:pi,'XTickLabel',180/pi*(0:pi/4:pi));
-set(gca,'YTick',0:.1);
+xlabel('Psychophysical distance from target (normalized)');
+set(gca,'XTick',0:1,'XTickLabel',0:1);
+set(gca,'YTick',0:.1:.2);
 
 drawPublishAxis('figSize=[20,10]','poster=0');
 
@@ -163,35 +167,45 @@ for di = 2:length(dbins)
     
     [n,x] = hist(dat(:,4),xs);
     n = n./sum(n);
-    plot(x,n,'o','MarkerFaceColor',cmap(di-1,:),'MarkerEdgeColor','w');
+    plot(x,n,'-','Color',cmap(di-1,:),'MarkerEdgeColor','w');
 %     title(sprintf('%1.2f, dprime %1.2f',mid,dp));
 end
 a = axis;
-axis([0 pi 0 a(4)]);
-legend({'0 - 67.5 deg','67.5 - 135 deg'});
+axis([0 1 0 a(4)]);
+legend({'0.25 - 0.5 s','0.5 - 0.75 s'});
 
 ylabel('Probability density (a.u.)');
-xlabel('Response distance from target (degs)');
-set(gca,'XTick',0:pi/4:pi,'XTickLabel',180/pi*(0:pi/4:pi));
-set(gca,'YTick',0:.1);
+xlabel('Psychophysical distance from target (normalized)');
+set(gca,'XTick',0:1,'XTickLabel',[0 1]);
+set(gca,'YTick',0:.1:.2);
 
 drawPublishAxis('figSize=[20,10]','poster=0');
 
 savepdf(h,fullfile('~/proj/afcom/figures','distance.pdf'));
 
-%% Test the full model fit
-fit = aca_fitTCCModel(adata,'nocv,bads',[]);
-aca_plotTCCModel(fit);
+%%
+%%%%%%% FINISHED
+return
+%%
 
+% I don't fit the full model anymore to the ACA data. Just the raw fits.
+% Note that there's no "no attention" condition here, so the best we can do
+% is just compare these directly to each other. 
 
-%% Test the population variant model fit
-fit = aca_fitTCCPopulationModel(adata,'nocv,bads',[]);
+% 
+% %% Test the full model fit
+% fit = aca_fitTCCModel(adata,'nocv,bads',[]);
 % aca_plotTCCModel(fit);
-
-%% test output from fit
-figure(1); clf; hold on
-xs = -pi:pi/128:pi;
-ys = computeTCCfromPopulation(xs,fitpop.params.sigma,fitpop.params.p);
-plot(xs,ys./sum(ys),'-b')
-ys2 = computeTCCPDF(xs,fit.params.p);
-plot(xs,ys2,'-r')
+% 
+% 
+% %% Test the population variant model fit
+% fit = aca_fitTCCPopulationModel(adata,'nocv,bads',[]);
+% % aca_plotTCCModel(fit);
+% 
+% %% test output from fit
+% figure(1); clf; hold on
+% xs = -pi:pi/128:pi;
+% ys = computeTCCfromPopulation(xs,fitpop.params.sigma,fitpop.params.p);
+% plot(xs,ys./sum(ys),'-b')
+% ys2 = computeTCCPDF(xs,fit.params.p);
+% plot(xs,ys2,'-r')
