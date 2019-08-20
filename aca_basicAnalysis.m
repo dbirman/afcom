@@ -27,6 +27,8 @@ for si = 1:length(subjects)
     
     adatas{si} = adata;
     
+    l(si) = size(adata,1);
+    
     %% Remove the first two runs of each type
 %     runs = unique(adata(:,15));
 %     ccount = 0;
@@ -96,7 +98,7 @@ plot_tcc_data(xs,acf,cmap(3,:),'aca_feature.pdf');
 figure;
 hold on
 xs = 0:pi/64:pi;
-rads = dat_feature(:,4);
+rads = ds(:,4);
 
 [n,x] = hist(rads,xs);
 n = n/sum(n);
@@ -115,7 +117,7 @@ xs = pi/64:pi/32:pi;
 cmap = brewermap(13,'Purples');
 cmap = cmap([7 13],:);
 
-dbins = linspace(0.25,0.75,3);
+dbins = linspace(0.20,0.75,3);
 for di = 2:length(dbins)
     
     low = dbins(di-1);
@@ -141,7 +143,7 @@ xlabel('Psychophysical distance from target (normalized)');
 set(gca,'XTick',0:1,'XTickLabel',0:1);
 set(gca,'YTick',0:.1:.2);
 
-drawPublishAxis('figSize=[20,10]','poster=0');
+drawPublishAxis('figSize=[8.9,4.5]','poster=0');
 
 savepdf(h,fullfile('~/proj/afcom/figures','duration.pdf'));
 
@@ -167,7 +169,7 @@ for di = 2:length(dbins)
     
     [n,x] = hist(dat(:,4),xs);
     n = n./sum(n);
-    plot(x,n,'-','Color',cmap(di-1,:),'MarkerEdgeColor','w');
+    plot(pscale(x),n,'-','Color',cmap(di-1,:),'MarkerEdgeColor','w');
 %     title(sprintf('%1.2f, dprime %1.2f',mid,dp));
 end
 a = axis;
@@ -178,8 +180,7 @@ ylabel('Probability density (a.u.)');
 xlabel('Psychophysical distance from target (normalized)');
 set(gca,'XTick',0:1,'XTickLabel',[0 1]);
 set(gca,'YTick',0:.1:.2);
-
-drawPublishAxis('figSize=[20,10]','poster=0');
+drawPublishAxis('figSize=[8.9,4.5]','poster=0');
 
 savepdf(h,fullfile('~/proj/afcom/figures','distance.pdf'));
 
