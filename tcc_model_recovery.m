@@ -1,20 +1,31 @@
+function [orig_params, fit_params, diff_params] = tcc_model_recovery()
 %% Simulate data from the TCC model and explore whether the model routines can recover the parameters
 
-nTrials = 1000;
+nTrials = 500;
 
-dpt = 2; % dprime of the target dot patch
-dps = 1; % dprime of the same-side
-dpf = 1; % dprime of the same-feature
-dpi = 1; % dprime of the irrelevant
+% dpt = 2; % dprime of the target dot patch
+% dps = 1; % dprime of the same-side
+% dpf = 1; % dprime of the same-feature
+% dpi = rand*2+1; % dprime of the irrelevant
+dpt = 2;
+dps = 0.5;
+dpf = 0.5;
+dpi = 0.5;
 
 dprimes = [dpt dps dpf dpi];
+disp(dprimes);
 
-bs = 0.9; % probability of being on the correct side
-bf = 0.9; % probability of getting the feature right | on the correct side
-bi = 0.5; % probability of getting the feature wrong | on the wrong side
+% bs = rand*0.5+0.5; % probability of being on the correct side
+% bf = rand*0.5+0.5; % probability of getting the feature right | on the correct side
+% bi = rand*0.2; % probability of getting the feature wrong | on the wrong side
+bs = 0.95;
+bf = 0.9;
+bi = 0.5;
 
 probs = [bs*bf bs*(1-bf) (1-bs)*(1-bi) (1-bs)*bi];
+disp(probs);
 
+orig_params = [dprimes bs bf bi];
 % therefore:
 % bs*bf = probability of choosing target
 % bs*(1-bf) = probability of choosing same-side
@@ -66,7 +77,7 @@ for ai = 1:size(likes,1)
 end
 
 figure;
-imagecs(liket);
+imagesc(liket);
 title('Full likelihood for each trial');
 
 % sample uniformly from each trial to generate data
@@ -89,7 +100,11 @@ adata = zeros(0,16);
 acs = cumsum(liket,2);
 for ai = 1:size(liket,1)
     cs = acs(ai,:);
-    respAngle = interp1(cs,xs,rand*max(cs));
+    for i = 1:100
+        respAngle = interp1(cs,xs,rand*max(cs));
+        
+        temp(i) = respAngle;
+    end
     adata(ai,:) = [1 0 0 1 0 angs(ai,1) nan angs(ai,:) respAngle angdist(respAngle,angs(ai,1)) nan 1 1];
 end
 
@@ -100,4 +115,22 @@ hist(adata(:,12));
 fit = ac_fitTCCModel(adata,'nocv,bads,recovery');
 
 %% Check how well we recovered the parameters
-fit.params
+
+fit_params = [fit.params.dt_1 fit.params.ds_1 fit.params.df_1 fit.params.di_1 fit.params.bs_1 fit.params.bs_1 fit.params.bi_1];
+
+diff_params = fit_params-orig_params;
+
+
+return
+
+
+
+%% Test script
+N = 50;
+orig = zeros(N,7);
+fit = orig;
+diff = orig;
+parfor i = 1:N
+    [orig(i,:) fit(i,:) diff(i,:)] = tcc_model_recovery;
+    disp(i);
+end

@@ -10,9 +10,6 @@ addpath(genpath('~/proj/afcom'));
 
 cmap_ = colorblindmap/255;
 
-cmap(1,:) = cmap_(7,:);
-cmap(2,:) = cmap_(4,:);
-
 alldata = [];
 
 adatas = {};
