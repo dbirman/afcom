@@ -348,7 +348,8 @@ for cond = 1:2
     subplot(313); hold on
     help_ac_plot_bias;
     
-    savepdf(h,fullfile('~/proj/afcom/figures',folder,sprintf('ac_bias.pdf')));
+    reportType = {'color','direction'};
+    savepdf(h,fullfile('~/proj/afcom/figures',sprintf('ac_bias_%s.pdf',reportType{cond})));
     
     % TODO: Output based on condition, and add labels to the different
     % conditions (or do this in the paper? 

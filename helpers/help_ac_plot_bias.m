@@ -1,26 +1,20 @@
 
 %% assumes that "bs/bf/bi" exists
+cla;
 
 cmap = ac_cmap;
 
 betas = [bs*bf bs*(1-bf) (1-bs)*(1-bi) (1-bs)*bi];
 
 % plot the proportion that are on the correct side
-rectangle('Position',[0 0 bs-bgap 1],'FaceColor',[0.75 0.75 0.75],'EdgeColor','w');
-plot([0 0 bs-bgap bs-bgap],[0 1 1 0],'-k');
-text(to+bs/2,0.5,sprintf('%2.0f%%',bs*100));
-text(to+bs/2,1.5,'Correct side');
-
-plot([bs+bgap bs+bgap 1 1],[0 1 1 0],'-k');
-text(to+1-(1-bs)/2,0.5,sprintf('%2.0f%%',(1-bs)*100));
-text(to+1-(1-bs)/2,1.5,'Wrong');
-
-axis([0 1 -1 2]);
-set(gca,'XTick',[0 1],'XTickLabels',{'',''});
-set(gca,'YTick',[0 1],'YTickLabels',{'',''});
-
-set(gca,'FontSize',7);
-drawPublishAxis('figSize=[8.9,4.5]','poster=0');
+rectangle('Position',[0 1.5 bs-bgap 1],'FaceColor',[0.75 0.75 0.75],'EdgeColor','w');
+plot([0 0 bs-bgap bs-bgap],[1.5 2.5 2.5 1.5],'-k');
+text(to+bs/2,2,sprintf('%2.0f%%',bs*100));
+text(to+bs/2,3,'Correct side');
+% 
+plot([bs+bgap bs+bgap 1 1],[1.5 2.5 2.5 1.5],'-k');
+text(to+1-(1-bs)/2,2,sprintf('%2.0f%%',(1-bs)*100));
+text(to+1-(1-bs)/2,3,'Wrong');
 
 
 % plot the side: (target and side)
@@ -59,8 +53,8 @@ if dist>0.01
 %     text(to+1-(1-side)/2,1.5,'1-\beta_{side}');
 end
 
-axis([0 1 -1 2]);
+axis([0 1 -1 3]);
 set(gca,'XTick',[0 1],'XTickLabel',{'',''});
 set(gca,'YTick',[0 1],'YTickLabel',{'',''});
 set(gca,'FontSize',7);
-drawPublishAxis('figSize=[8.9,2.5]');
+drawPublishAxis('figSize=[8.9,4.5]','poster=0');
