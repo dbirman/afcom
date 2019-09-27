@@ -10,6 +10,11 @@ function like = computeTCCPDF(rads,dprime)
 %   likelihood - the likelihood that the TCC model will sample each x,
 %                normalized
 
+if any(rads>pi)
+    disp('You might have submitted degrees, converting to radians');
+    rads = rads * pi / 180;
+end
+
 if dprime==0
     like = ones(size(rads));
     like = like./sum(like);

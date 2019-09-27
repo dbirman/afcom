@@ -18,7 +18,7 @@ y = rmax * x.^n ./ (x.^n + c50^n) + b;
 % k = .02;
 % a = 180*k;
 % 
-% if ~inv
+% % if ~inv
 % 
 %     % x = 0:180;
 %     y = pscale_(x,a,k);
