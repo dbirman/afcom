@@ -146,6 +146,7 @@ xs = pi/64:pi/32:pi;
 dbins = linspace(0.20,0.75,3);
 
 dur_out = nan(length(adatas),2,length(xs));
+dp = zeros(length(adatas),2);
 for ai = 1:length(adatas)
     data = adatas{ai};
     
@@ -159,6 +160,8 @@ for ai = 1:length(adatas)
         n = n./sum(n);
         
         dur_out(ai,di-1,:) = n;
+        
+        dp(ai,di-1) = fitTCC(dat(:,4));
     end
 end
 % now average the histograms
@@ -197,8 +200,14 @@ set(gca,'YTick',0:.1:.2);
 
 drawPublishAxis('figSize=[4.5,4.5]','poster=0');
 
-savepdf(h,fullfile('~/proj/afcom/figures','duration.pdf'));
+% % savepdf(h,fullfile('~/proj/afcom/figures','duration.pdf'));
 
+
+%% info for text
+
+ddur = dp(:,2)-dp(:,1);
+cidur = bootci(10000,@nanmean,ddur);
+disp(sprintf('Difference in d'' due to duration: %1.2f 95%% CI [%1.2f, %1.2f]',mean(ddur),cidur(1),cidur(2)));
 
 
 %% DISTANCE PLOTS
@@ -208,6 +217,7 @@ savepdf(h,fullfile('~/proj/afcom/figures','duration.pdf'));
 xs = pi/64:pi/32:pi;
 dbins = linspace(0,0.75*pi,3);
 
+dp = zeros(length(adatas),2);
 dur_out = nan(length(adatas),2,length(xs));
 for ai = 1:length(adatas)
     data = adatas{ai};
@@ -223,13 +233,15 @@ for ai = 1:length(adatas)
         n = n./sum(n);
         
         dur_out(ai,di-1,:) = n;
+        
+        dp(ai,di-1) = fitTCC(dat(:,4));
     end
 end
 % now average the histograms
 dur_ = squeeze(mean(dur_out));
 dur_ci = squeeze(bootci(1000,@nanmean,dur_out));
 
-% plot
+%% plot
 h = figure; hold on
 
 cmap = brewermap(13,'Oranges');
