@@ -274,6 +274,11 @@ drawPublishAxis('figSize=[4.5,4.5]','poster=0');
 savepdf(h,fullfile('~/proj/afcom/figures','distance.pdf'));
 
 %%
+ddur = dp(:,1)-dp(:,2);
+cidur = bootci(10000,@nanmean,ddur);
+disp(sprintf('Difference in d'' due to distance: %1.2f 95%% CI [%1.2f, %1.2f]',mean(ddur),cidur(1),cidur(2)));
+
+%%
 %%%%%%% FINISHED
 return
 %%
