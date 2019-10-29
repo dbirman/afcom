@@ -342,7 +342,7 @@ for ci_ = 1:2
     drawPublishAxis('figSize=[4.5,4.5]');
 
 
-	savepdf(h,fullfile('~/proj/afcom/figures',sprintf('dprime_%s.pdf',reportType{ci_})));
+% 	savepdf(h,fullfile('~/proj/afcom/figures',sprintf('dprime_%s.pdf',reportType{ci_})));
 end
 
 %% Save data again
@@ -409,7 +409,7 @@ for cond = 1:2
     help_ac_plot_bias;
     
     reportType = {'color','direction'};
-    savepdf(h,fullfile('~/proj/afcom/figures',sprintf('ac_bias_%s.pdf',reportType{cond})));
+%     savepdf(h,fullfile('~/proj/afcom/figures',sprintf('ac_bias_%s.pdf',reportType{cond})));
     
     % TODO: Output based on condition, and add labels to the different
     % conditions (or do this in the paper? 
@@ -456,4 +456,41 @@ reportType = {'color','direction'};
 savepdf(h,fullfile('~/proj/afcom/figures',sprintf('ac_bias_average.pdf')));
     
 
+
+%% Statistics
+
+%% Save data again
+dt_all = zeros(8,2);
+bs_all = dt_all; bf_all = dt_all; bi_all = dt_all;
+dt_s = dt_all; bs_s = dt_all; bf_s = dt_all; bi_s = dt_all;
+for ai = 1:8
+    for ci = 1:2
+        fit = fits{ai}{ci};
+        dt_all(ai,ci) = fit.params.dt_1;
+        bs_all(ai,ci) = fit.params.bs_1;
+        bf_all(ai,ci) = fit.params.bf_1;
+        bi_all(ai,ci) = fit.params.bi_1;
+        dt_s(ai,ci) = fit.params.dt_2;
+        bs_s(ai,ci) = fit.params.bs_2;
+        bf_s(ai,ci) = fit.params.bf_2;
+        bi_s(ai,ci) = fit.params.bi_2;
+        dt_f(ai,ci) = fit.params.dt_3;
+        bs_f(ai,ci) = fit.params.bs_3;
+        bf_f(ai,ci) = fit.params.bf_3;
+        bi_f(ai,ci) = fit.params.bi_3;
+        dt_baseline(ai,ci) = fit.params.dt_5;
+    end
+end
+
+%%
+
+% we've pulled out all the parameters here, now we need to average them and
+% compare them across conditions 
+
+% for example, is there a difference between dt for cue side and cue
+% feature? 
+% start by computing on aggregate data
+diff = dt_f-dt_s;
+ci = bootci(10000,@nanmean,diff(:));
+disp(sprintf('Cue Feature was %1.2f $d''$ higher, 95\\%% CI [%1.2f, %1.2f]',mean(diff(:)),ci(1),ci(2)));
 
