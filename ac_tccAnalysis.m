@@ -481,11 +481,24 @@ for ai = 1:8
         dt_baseline(ai,ci) = fit.params.dt_5;
     end
 end
+% we've pulled out all the parameters here, now we need to average them and
+% compare them across conditions 
 
 %%
 
-% we've pulled out all the parameters here, now we need to average them and
-% compare them across conditions 
+bias_t_side = bs_s.*bf_s;
+bias_s_side = bs_s.*(1-bf_s);
+bias_f_side = (1-bs_s).*(1-bi_s);
+bias_d_side = (1-bs_s).*bi_s;
+
+bias_t_feat = bs_f.*bf_f;
+bias_s_feat = bs_f.*(1-bf_f);
+bias_f_feat = (1-bs_f).*(1-bi_f);
+bias_d_feat = (1-bs_f).*bi_f;
+
+%%
+
+
 
 % for example, is there a difference between dt for cue side and cue
 % feature? 
