@@ -98,6 +98,11 @@ for ci = 1:length(cues)
     end
 end
 
+%% Make a copy with just the last info, so we can practice fitting models
+warning('FITTING ONLY ONE MODEL');
+infos_copy = infos;
+infos = infos(end);
+
 %% Do all the fits
 disp(sprintf('Running fits for %i runs',length(infos)));
 % sort by the number of trials in each one
@@ -108,7 +113,8 @@ end
 [~,idxs] = sort(len,'descend');
 infos = infos(idxs);
 % run the actual fitting procedure
-parfor ii = 1:length(infos)
+warning('no parfor');
+for ii = 1:length(infos)
     infos{ii}.fit = ac_fitTCCModel(infos{ii}.data,infos{ii}.call);
     infos{ii}.fit.data = infos{ii}.data;
     infos{ii}.fit.call = infos{ii}.call;
@@ -148,6 +154,23 @@ save(fullfile('~/proj/afcom/tcc_data2.mat'),'fits','allfits');
 %% Load the fits
 
 load(fullfile('~/proj/afcom/tcc_data.mat'));
+
+%% R^2?
+% I can't find a good solution to fitting something like R^2 for circular
+% data, especially when all we have are the likelihoods. We could do
+% something like the pseudo-r2 under the assumption that a null model fits
+% log(1/129) as the probability? Try that here:
+
+% (this doesn't work well)
+% clear pr2
+% for subj = 1:length(fits)
+%     for cond = 1:2
+%         l_model = fits{subj}{cond}.likelihood;
+%         n = size(fits{subj}{cond}.data,1);
+%         l_null = -nansum(log(repmat(1/129,1,n)));
+%         pr2(subj,cond) = 1 - (l_null/l_model);
+%     end
+% end
 
 %% Plot the quality of the fits 
 % using fits, a cell array of the fits to the two conditions, report

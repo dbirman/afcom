@@ -221,7 +221,7 @@ for tt = 1:length(fixedParams.trialTypes)
     probs(idxs) = trial_likelihoods;
     
     if any(trial_likelihoods==0)
-        stop =1 ;
+        stop = 1;
     end
 end
 
