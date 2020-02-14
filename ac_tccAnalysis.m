@@ -53,55 +53,66 @@ for si = 1:length(subjects)
     dirdata = sel(adata,3,2);
     
     reportType = {'color','direction'};
+    calls = {'bads,spatial,feature,sh_sens,sh_bias',...
+        'bads,spatial,feature,sh_sens,',...
+        'bads,spatial,feature,sh_bias',...
+        'bads,spatial,feature',...
+        'bads,all,sh_sens,sh_bias',...
+        'bads,baseline,sh_sens,sh_bias'};
     mindurs = [0.25];
     maxdurs = [0.3];
     durationType = {'hard'};
     for ci = 1:length(cues)
         for di = 1:length(mindurs)
-            data = sel(adata,3,cues(ci));
-            data = fil(data,4,'>=',mindurs(di));
-            data = fil(data,4,'<=',maxdurs(di));
-            if size(data,1)>0
-                info = struct;
-                info.data = data;
-                info.call = 'nocv,bads';
-                info.ci = ci;
-                info.di = di;
-                info.subj = si;
-                info.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
-                infos{end+1} = info;
-    %             fit{ci,di} = ac_fitEncodingModel(data,'nocv,bdist');%'nocv');
-                disp(sprintf('%s: %i trials',info.dataType,size(data,1)));
-            else
-                disp(sprintf('%s: skipping',sprintf('%s report %s',durationType{di},reportType{ci})));
+            for li = 1:length(calls)
+                data = sel(adata,3,cues(ci));
+                data = fil(data,4,'>=',mindurs(di));
+                data = fil(data,4,'<=',maxdurs(di));
+                if size(data,1)>0
+                    info = struct;
+                    info.data = data;
+                    info.call = calls{li};
+                    info.ci = ci;
+                    info.di = di;
+                    info.subj = si;
+                    info.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
+                    infos{end+1} = info;
+        %             fit{ci,di} = ac_fitEncodingModel(data,'nocv,bdist');%'nocv');
+                    disp(sprintf('%s: %i trials',info.dataType,size(data,1)));
+                else
+                    disp(sprintf('%s: skipping',sprintf('%s report %s',durationType{di},reportType{ci})));
+                end
             end
         end
     end
 end
 
 %% Add combined data fits
-% 
-for ci = 1:length(cues)
-    for di = 1:length(mindurs)
-        data = sel(alldata,3,cues(ci));
-        data = fil(data,4,'>=',mindurs(di));
-        data = fil(data,4,'<=',maxdurs(di));
-        info = struct;
-        info.data = data;
-        info.call = 'nocv,bads';
-        info.ci = ci;
-        info.di = di;
-        info.subj = -1; % all subjects
-        info.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
-        infos{end+1} = info;
-        disp(sprintf('ALLDATA %s: %i trials',info.dataType,size(data,1)));
-    end
-end
+% We shouldn't really be using these for the paper (commenting out...
+% 12/17/19)
+% for ci = 1:length(cues)
+%     for di = 1:length(mindurs)
+%         for li = 1:length(calls)
+%             data = sel(alldata,3,cues(ci));
+%             data = fil(data,4,'>=',mindurs(di));
+%             data = fil(data,4,'<=',maxdurs(di));
+%             info = struct;
+%             info.data = data;
+%             info.call = calls{li};
+%             info.ci = ci;
+%             info.di = di;
+%             info.subj = -1; % all subjects
+%             info.dataType = sprintf('%s report %s',durationType{di},reportType{ci});
+%             infos{end+1} = info;
+%             disp(sprintf('ALLDATA %s: %i trials',info.dataType,size(data,1)));
+%         end
+%     end
+% end
 
 %% Make a copy with just the last info, so we can practice fitting models
-warning('FITTING ONLY ONE MODEL');
-infos_copy = infos;
-infos = infos(end);
+% warning('FITTING ONLY ONE MODEL');
+% infos_copy = infos;
+% infos = infos(end);
 
 %% Do all the fits
 disp(sprintf('Running fits for %i runs',length(infos)));
@@ -113,8 +124,9 @@ end
 [~,idxs] = sort(len,'descend');
 infos = infos(idxs);
 % run the actual fitting procedure
-warning('no parfor');
-for ii = 1:length(infos)
+% warning('no parfor');
+parfor ii = 1:length(infos)
+    disp(infos{ii}.call);
     infos{ii}.fit = ac_fitTCCModel(infos{ii}.data,infos{ii}.call);
     infos{ii}.fit.data = infos{ii}.data;
     infos{ii}.fit.call = infos{ii}.call;
@@ -122,7 +134,6 @@ for ii = 1:length(infos)
 end
 disp('Fits complete');
 
-%% Check that the fits 
 
 %% Sort all the fits
 
@@ -133,10 +144,23 @@ for si = [-1 1:length(subjects)]
         for di = 1:length(mindurs)
             for ii = 1:length(infos)
                 if infos{ii}.ci==ci && infos{ii}.di==di && infos{ii}.subj==si
-                    if si==-1
-                        allfits{ci,di} = infos{ii}.fit;
-                    else
-                        fit{ci,di} = infos{ii}.fit;
+                    % this is a fit that was done for this subject, for
+                    % this condition, for this difficulty level
+                    
+                    % now we have to sort by the call, first pull out the
+                    % baseline and cue4 fits
+                    if ~isempty(strfind(infos{ii}.fit.call,'all'))
+                        fit{ci,1} = infos{ii}.fit; % cue 4
+                    elseif ~isempty(strfind(infos{ii}.fit.call,'baseline'))
+                        fit{ci,2} = infos{ii}.fit; % baseline
+                    elseif ~isempty(strfind(infos{ii}.fit.call,'sh_sens,sh_bias'))
+                        fit{ci,3} = infos{ii}.fit; % shared model
+                    elseif ~isempty(strfind(infos{ii}.fit.call,'sh_sens')) && isempty(strfind(infos{ii}.fit.call,'sh_bias'))
+                        fit{ci,4} = infos{ii}.fit; % shared sensitivity
+                    elseif ~isempty(strfind(infos{ii}.fit.call,'sh_bias')) && isempty(strfind(infos{ii}.fit.call,'sh_sens'))
+                        fit{ci,5} = infos{ii}.fit; % shared bias
+                    elseif ~isempty(strfind(infos{ii}.fit.call,'spatial,feature')) && isempty(strfind(infos{ii}.fit.call,'sh_bias')) && isempty(strfind(infos{ii}.fit.call,'sh_sens'))
+                        fit{ci,6} = infos{ii}.fit; % no shared parameters
                     end
                 end
             end
@@ -149,28 +173,46 @@ end
 
 %% Save the fits
 
-save(fullfile('~/proj/afcom/tcc_data2.mat'),'fits','allfits');
+% over-write with cross-validated fits
+save(fullfile('~/proj/afcom/tcc_data.mat'),'fits','allfits');
 
 %% Load the fits
 
 load(fullfile('~/proj/afcom/tcc_data.mat'));
 
-%% R^2?
-% I can't find a good solution to fitting something like R^2 for circular
-% data, especially when all we have are the likelihoods. We could do
-% something like the pseudo-r2 under the assumption that a null model fits
-% log(1/129) as the probability? Try that here:
+%% Cross-validated likelihood
+% Let's pull all the CV likelihoods out to compare them, specifically the
+% cross-validated fits for the 4 models
+cv = [];
+for si = 1:length(fits)
+    for ci = 1:2
+        for mi = 3:6
+            cv(si,ci,mi-2) = fits{si}{ci,mi}.cv.likelihood;
+        end
+    end
+end
 
-% (this doesn't work well)
-% clear pr2
-% for subj = 1:length(fits)
-%     for cond = 1:2
-%         l_model = fits{subj}{cond}.likelihood;
-%         n = size(fits{subj}{cond}.data,1);
-%         l_null = -nansum(log(repmat(1/129,1,n)));
-%         pr2(subj,cond) = 1 - (l_null/l_model);
-%     end
-% end
+% now we can check whether the numbers are bigger or smaller. If a model
+% has a *smaller* value, itis a better model
+
+% CV model #:
+%  1         2    3      4
+% all sh   bias sens bias+sens
+
+% we're going to check if 
+
+ % critical comparison: if greater than zero, then there is value to using
+ % non-shared bias parameters
+temp = cv(:,1,1)-cv(:,1,2);
+bootci(10000,@mean,temp(:))
+
+% if > 0, then there is value to using non-shared sensitivity parameters
+temp = cv(:,1,1)-cv(:,1,3);
+bootci(10000,@mean,temp(:))
+
+% if > 0 then there is value to using non-shared parameters
+temp = cv(:,1,1)-cv(:,1,4);
+bootci(10000,@mean,temp(:))
 
 %% Plot the quality of the fits 
 % using fits, a cell array of the fits to the two conditions, report
@@ -191,26 +233,38 @@ load(fullfile('~/proj/afcom/tcc_data.mat'));
 % bin centers
 xs = pi/64:pi/32:pi;
 
-    reportType = {'color','direction'};
-resp = zeros(length(fits),2,5,length(xs));
+reportType = {'color','direction'};
+resp = zeros(length(fits),2,3,length(xs));
 model = resp;
 for subj = 1:length(fits)
     for cond = 1:2
-        fit = fits{subj}{cond};
+        sfits = fits{subj};
+        cfits = {sfits{cond,1}, sfits{cond,2}, sfits{cond,3}};
+        tts = {[0],[4],[1 2]};
+        rs = [1 3 2];
+        for ci = 1:length(tts)
+            cfit = cfits{ci};
+            tt = tts{ci};
+            
+            % get the adata from these fits, they're all the same so it
+            % doesn't matter which one we use
+            ttdata = [];
+            for ti = 1:length(tt)
+                ttdata = [ttdata ; sel(cfit.data,2,tt(ti))];
+            end
 
-        for tt = 0:4
-            ttdata = sel(fit.data,2,tt);
             % bin the values
             [c,~] = hist(ttdata(:,13),xs);
             % normalize counts (so we can average them later)
             c = c ./ sum(c);
             % save
-            resp(subj,cond,tt+1,:) = c;
-            
+            resp(subj,cond,rs(ci),:) = c;
+
+
             % compute the model fit
-            dt = fit.params.(sprintf('dt_%i',tt+1));
+            dt = cfit.params.dt_sh;
             probs = computeTCCPDF(xs,dt);
-            model(subj,cond,tt+1,:) = probs;
+            model(subj,cond,rs(ci),:) = probs;
         end
     end
 end
@@ -227,12 +281,12 @@ idxs = [1:12 14 16 20 24 32];
 
 px = pscale(xs);
 
-pos = [1 2 3 nan 4];
+pos = [1 2 3];
 for cond = 1:2
     h = figure;
-    for tt = [1 2 3 5]
+    for tt = [1 2 3]
         clear mmu mmu_ err err_ mu mu_
-        subplot(4,1,pos(tt)); hold on
+        subplot(3,1,pos(tt)); hold on
         px_ = px(idxs);
         mmu = squeeze(model_mu(cond,tt,:));
         mmu_ = mmu(idxs);
@@ -252,7 +306,7 @@ for cond = 1:2
         end
         drawPublishAxis('figSize=[4.4,8.9]');   
     end
-%     savepdf(h,fullfile('~/proj/afcom/figures',sprintf('report%s_avg_model_fit.pdf',reportType{cond})));
+    savepdf(h,fullfile('~/proj/afcom/figures',sprintf('report%s_avg_model_fit.pdf',reportType{cond})));
 end
 
 %% Plot separated likelihood functions

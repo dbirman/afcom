@@ -50,6 +50,7 @@ for xi = pxidxs
     like(xi) = allpdfs(xi,:) * prod(normcdf(repmat(rrange',1,length(nx1)),repmat(nx1,length(rrange),1),sigma),2);
 end
 
+
 if sum(like)<0.99
     like = eps*ones(size(like));
     warning('Sum of TCC likelihood is not close enough to 1, the range may not be appropriate');
@@ -57,3 +58,12 @@ elseif sum(like>1.01)
     warning('Error');
     stop = 1;
 end
+
+% convolve with a 2-degree error
+
+% create a 2-degree normal distribution
+sigma = 1/sqrt(2*log(2))*pi/180; % 2 degree error, but convert to radians
+y = normpdf(rads,median(rads),sigma);
+% convolve the likelihood
+y = y./sum(y);
+like = conv(like,y,'same');

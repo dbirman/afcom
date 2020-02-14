@@ -4,6 +4,8 @@ function fit = ac_fitTCCModel(adata,mode,fit)
 % Schurgin, M. W., Wixted, J. T., & Brady, T. F. (2018). Psychological scaling reveals a single parameter framework for visual working memory. bioRxiv, 325472.
 %
 %
+%
+%
 % PARAMETERS
 %       guess rate
 %   lambda - lapse rate (lambda) and response rate (1-lambda)
@@ -19,11 +21,41 @@ function fit = ac_fitTCCModel(adata,mode,fit)
 %
 % MODE OPTIONS
 %
+%   you can pass in the conditions that you want to be fit
+%   (all,spatial,feature, etc) this allows you to fit the model to
+%   different sets of conditions, for example just the "all" condition, or
+%   the combination of the spatial/feature conditions, etc. 
+%
+%   For example the model string:
+%     spatial,feature,sh_sens
+%   Would fit a model to the cue 2 spatial/feature trials with a single set
+%   of a sensitivity parameters shared across conditions
+%
+%   nosens = per-condition bias parameters, with d' *shared* across conditions
+%   nobias = per-condition d' parameters, bias *shared* across conditions
+%   nosens,nobias = shared bias and d' parameters
+%
 
 global fixedParams
 
 fixedParams.trialTypes = {'all','spatial','feature','target','baseline'};
 fixedParams.trialTypeVals = [0 1 2 3 4];
+keep = cellfun(@(x) ~isempty(strfind(mode,x)),fixedParams.trialTypes);
+fixedParams.trialTypes = fixedParams.trialTypes(keep);
+fixedParams.trialTypeVals = fixedParams.trialTypeVals(keep);
+
+% remove trials we aren't fitting
+if length(fixedParams.trialTypes)<5
+    disp(sprintf('Removing %i conditions that are not being fit',5-length(fixedParams.trialTypes)));
+    trialTypes = adata(:,2);
+    idxs = zeros(size(trialTypes));
+    for tt = 1:length(fixedParams.trialTypeVals)
+        idxs = idxs + (trialTypes==fixedParams.trialTypeVals(tt));
+    end
+    disp(sprintf('Dropped %i trials',size(adata,1)-sum(idxs>0)));
+    adata = adata(logical(idxs),:);
+end
+
 fixedParams.bdist = ~isempty(strfind(mode,'bdist'));
 
 if ~isempty(strfind(mode,'recovery'))
@@ -54,13 +86,13 @@ if isempty(strfind(mode,'nocv'))
             keyboard
         end
         
-        trainfit = ac_fitEncodingModel(train,strcat(mode,',nocv'));
-        testfit = ac_fitEncodingModel(test,strcat(mode,',eval'),trainfit);
+        trainfit = ac_fitTCCModel(train,strcat(mode,',nocv'));
+        testfit = ac_fitTCCModel(test,strcat(mode,',eval'),trainfit);
         aprobs = [aprobs; testfit.probs];
         like(ri) = testfit.likelihood;
     end
     
-    fit = ac_fitEncodingModel(adata,strcat(mode,',nocv'));
+    fit = ac_fitTCCModel(adata,strcat(mode,',nocv'));
     fit.cv.probs = aprobs;
     fit.cv.likelihood = -nansum(log(aprobs));
     return
@@ -71,18 +103,38 @@ end
 % params.lambda = [0.02 0 1 0 0.1];
 params.motor = 2*pi/180; % fix this for now
 
-for tt = 1:length(fixedParams.trialTypes)
-    params.(sprintf('bs_%i',tt)) = [0.75 0 1 0.5 1];
-    params.(sprintf('bf_%i',tt)) = [0.75 0 1 0.5 1];
-    params.(sprintf('bi_%i',tt)) = [0.1 0 1 0 0.2];
-    
-    params.(sprintf('dt_%i',tt)) = [2 0.01 10 1 3];
-    params.(sprintf('ds_%i',tt)) = [2 0.01 10 1 3];
-    params.(sprintf('df_%i',tt)) = [2 0.01 10 1 3];
-    params.(sprintf('di_%i',tt)) = [2 0.01 10 1 3];
+% set up any shared parameters
+if ~isempty(strfind(mode,'sh_sens'))
+    fixedParams.shared_sensitivity = true;
+    params.dt_sh = [2 0.01 10 1 3];
+    params.ds_sh = [2 0.01 10 1 3];
+    params.df_sh = [2 0.01 10 1 3];
+    params.di_sh = [2 0.01 10 1 3];
+else
+    fixedParams.shared_sensitivity = false;
+    for tt = 1:length(fixedParams.trialTypes)
+        params.(sprintf('dt_%i',tt)) = [2 0.01 10 1 3];
+        params.(sprintf('ds_%i',tt)) = [2 0.01 10 1 3];
+        params.(sprintf('df_%i',tt)) = [2 0.01 10 1 3];
+        params.(sprintf('di_%i',tt)) = [2 0.01 10 1 3];
+    end
 end
 
-% don't fit a bias
+if ~isempty(strfind(mode,'sh_bias'))
+    fixedParams.shared_bias = true;
+    params.bs_sh = [0.75 0 1 0.5 1];
+    params.bf_sh = [0.75 0 1 0.5 1];
+    params.bi_sh = [0.1 0 1 0 0.2];
+else
+    fixedParams.shared_bias = false;
+    for tt = 1:length(fixedParams.trialTypes)
+        params.(sprintf('bs_%i',tt)) = [0.75 0 1 0.5 1];
+        params.(sprintf('bf_%i',tt)) = [0.75 0 1 0.5 1];
+        params.(sprintf('bi_%i',tt)) = [0.1 0 1 0 0.2];
+    end
+end
+
+% don't fit a bias unless requested (not useful, nobody has a bias)
 if ~isempty(strfind(mode,'bias'))
     params.bias = [0 -pi pi -pi/8 pi/8];
 else
@@ -93,9 +145,9 @@ end
 
 % BADS VERSION
 if strfind(mode,'bads')
-    warning('Tolerance size is large: reduce for main fits');
-    options.TolMesh = 0.2;
-    options.MaxFunEvals = 600;
+%     warning('Tolerance size is large and maxfunevals is tiny: reduce for main fits');
+    options.TolMesh = 0.001;
+%     options.MaxFunEvals = 200;
     
     bestparams = bads(@(p) vmlike(p,adata,0),ip,minp,maxp,plb,pub,[],options);
 
@@ -176,10 +228,6 @@ probs = zeros(size(adata,1),1);
 %% Compute for each dprime parameter the likelihood functions
 xs = 0:pi/128:pi;
 for tt = 1:length(fixedParams.trialTypes)
-    liket = preComputeTCCPDF(xs,params.(sprintf('dt_%i',tt)));
-    likes = preComputeTCCPDF(xs,params.(sprintf('ds_%i',tt)));
-    likef = preComputeTCCPDF(xs,params.(sprintf('df_%i',tt)));
-    likei = preComputeTCCPDF(xs,params.(sprintf('di_%i',tt)));
     
     idxs = adata(:,2)==fixedParams.trialTypeVals(tt);
     % get trials with this trial type
@@ -191,17 +239,35 @@ for tt = 1:length(fixedParams.trialTypes)
                 9     8    11    10
                 10    11     8     9
                 11    10     9     8];
-    
+
     angles = zeros(size(tdata,1),4);
     for ti = 1:size(tdata,1)
         trial = tdata(ti,:);
         target = trial(1);
         angles(ti,:) = trial(angleOpts(target,:));
     end
-    
+
     % rotate all the angles relative to the response angle 
     angles = angdist(repmat(tdata(:,12),1,4),angles);
+
+    % get the parameters for this trialtype
+    if fixedParams.shared_sensitivity
+        dt = params.dt_sh;
+        ds = params.ds_sh;
+        df = params.df_sh;
+        di = params.di_sh;
+    else
+        dt = params.(sprintf('dt_%i',tt));
+        ds = params.(sprintf('ds_%i',tt));
+        df = params.(sprintf('df_%i',tt));
+        di = params.(sprintf('di_%i',tt));
+    end
     
+    liket = preComputeTCCPDF(xs,dt);
+    likes = preComputeTCCPDF(xs,ds);
+    likef = preComputeTCCPDF(xs,df);
+    likei = preComputeTCCPDF(xs,di);
+
     like = zeros(size(angles));
     % compute the probability that the response angle was pulled from this
     % distribution
@@ -209,17 +275,23 @@ for tt = 1:length(fixedParams.trialTypes)
     like(:,2) = interp1(xs,likes,angles(:,2),'linear');
     like(:,3) = interp1(xs,likef,angles(:,3),'linear');
     like(:,4) = interp1(xs,likei,angles(:,4),'linear');
-    
+
     % weight the likelihoods by the beta values
-    bs = params.(sprintf('bs_%i',tt));
-    bf = params.(sprintf('bf_%i',tt));
-    bi = params.(sprintf('bi_%i',tt));
+    if fixedParams.shared_bias
+        bs = params.bs_sh;
+        bf = params.bf_sh;
+        bi = params.bi_sh;
+    else
+        bs = params.(sprintf('bs_%i',tt));
+        bf = params.(sprintf('bf_%i',tt));
+        bi = params.(sprintf('bi_%i',tt));
+    end
     betas = [bs*bf bs*(1-bf) (1-bs)*(1-bi) (1-bs)*bi];
-    
+
     trial_likelihoods = like * betas';
     
     probs(idxs) = trial_likelihoods;
-    
+
     if any(trial_likelihoods==0)
         stop = 1;
     end
@@ -252,40 +324,58 @@ if computeOutput
     out = zeros(5,4,length(x));
     outs = out;
     % for each trial type, compute the likelihood function?
+    tx = 0:pi/128:pi;
     for tt = 1:length(fixedParams.trialTypes)
-        tx = 0:pi/128:pi;
-        liket = computeTCCPDF(tx,params.(sprintf('dt_%i',tt)));
+
+        if fixedParams.shared_sensitivity
+            dt = params.dt_sh;
+            ds = params.ds_sh;
+            df = params.df_sh;
+            di = params.di_sh;
+        else
+            dt = params.(sprintf('dt_%i',tt));
+            ds = params.(sprintf('ds_%i',tt));
+            df = params.(sprintf('df_%i',tt));
+            di = params.(sprintf('di_%i',tt));
+        end
+
+        liket = computeTCCPDF(tx,dt);
         liket = [fliplr(liket) liket(2:end)];
-        likes = computeTCCPDF(tx,params.(sprintf('ds_%i',tt)));
+        likes = computeTCCPDF(tx,ds);
         likes = [fliplr(likes) likes(2:end)];
-        likef = computeTCCPDF(tx,params.(sprintf('df_%i',tt)));
+        likef = computeTCCPDF(tx,df);
         likef = [fliplr(likef) likef(2:end)];
-        likei = computeTCCPDF(tx,params.(sprintf('di_%i',tt)));
+        likei = computeTCCPDF(tx,di);
         likei = [fliplr(likei) likei(2:end)];
-        
+
         % normalize everything
         liket = liket./sum(liket);
         likes = likes./sum(likes);
         likef = likef./sum(likef);
         likei = likei./sum(likei);
-        
-        bs = params.(sprintf('bs_%i',tt));
-        bf = params.(sprintf('bf_%i',tt));
-        bi = params.(sprintf('bi_%i',tt));
+
+        if fixedParams.shared_bias
+            bs = params.bs_sh;
+            bf = params.bf_sh;
+            bi = params.bi_sh;
+        else
+            bs = params.(sprintf('bs_%i',tt));
+            bf = params.(sprintf('bf_%i',tt));
+            bi = params.(sprintf('bi_%i',tt));
+        end
         % scale the likelihood functions 
-        
+
         % target/side/feat/dist
         out(tt,1,:) = liket;
         out(tt,2,:) = likes;
         out(tt,3,:) = likef;
         out(tt,4,:) = likei;
-        
+
         outs(tt,1,:) = bs*bf*liket;
         outs(tt,2,:) = bs*(1-bf)*likes;
         outs(tt,3,:) = (1-bs)*(1-bi)*likef;
         outs(tt,4,:) = (1-bs)*bi*likei;
-    end
-    
+    end    
     fit.outs = outs;
     fit.out = out;
 end
