@@ -87,7 +87,7 @@ for si = 1:length(subjects)
 end
 
 %% Set permutation parameters
-repeats = 30;
+repeats = 100;
 
 %% Do all the fits
 disp(sprintf('Running fits for %i runs',length(infos)));
@@ -110,7 +110,9 @@ parfor ii = 1:length(infos)
     info = infos{ii};
     for ri = 1:repeats
         info.data(:,12) = info.data(randperm(size(info.data,1)),12);
-        permFit = ac_fitTCCModel(info.data,info.call);
+        % note this uses a faster fitting routine (has a max number of
+        % function evals, so it won't run for ever)
+        permFit = ac_fitTCCModel_perms(info.data,info.call);
         infos{ii}.fit.perm{ri} = permFit.cv.likelihood;
     end
 end
