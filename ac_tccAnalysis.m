@@ -107,13 +107,14 @@ parfor ii = 1:length(infos)
     infos{ii}.fit.dataType = infos{ii}.dataType;
     % now fit a number of permutation models as well, saving just the cv
     % values
+    infos{ii}.fit.perm = zeros(1,repeats);
     info = infos{ii};
     for ri = 1:repeats
         info.data(:,12) = info.data(randperm(size(info.data,1)),12);
         % note this uses a faster fitting routine (has a max number of
         % function evals, so it won't run for ever)
         permFit = ac_fitTCCModel_perms(info.data,info.call);
-        infos{ii}.fit.perm{ri} = permFit.cv.likelihood;
+        infos{ii}.fit.perm(ri) = permFit.cv.likelihood;
     end
 end
 disp('Fits complete');
