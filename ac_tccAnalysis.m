@@ -87,7 +87,7 @@ for si = 1:length(subjects)
 end
 
 %% Set permutation parameters
-repeats = 25;
+repeats = 30;
 
 %% Do all the fits
 disp(sprintf('Running fits for %i runs',length(infos)));
