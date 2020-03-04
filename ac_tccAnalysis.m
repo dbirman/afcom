@@ -109,12 +109,17 @@ parfor ii = 1:length(infos)
     % values
     infos{ii}.fit.perm = zeros(1,repeats);
     info = infos{ii};
-    for ri = 1:repeats
-        info.data(:,12) = info.data(randperm(size(info.data,1)),12);
-        % note this uses a faster fitting routine (has a max number of
-        % function evals, so it won't run for ever)
-        permFit = ac_fitTCCModel_perms(info.data,info.call);
-        infos{ii}.fit.perm(ri) = permFit.cv.likelihood;
+    perm_calls = {'all','baseline','sh_sens,sh_bias'};
+    if any(cellfun(@(x) ~isempty(strfind(info.call,x)),perm_calls))
+        % only run permutations for the conditions that require it
+        % (spatial/feature, all, and baseline)
+        for ri = 1:repeats
+            info.data(:,12) = info.data(randperm(size(info.data,1)),12);
+            % note this uses a faster fitting routine (has a max number of
+            % function evals, so it won't run for ever)
+            permFit = ac_fitTCCModel_perms(info.data,info.call);
+            infos{ii}.fit.perm(ri) = permFit.cv.likelihood;
+        end
     end
 end
 disp('Fits complete');

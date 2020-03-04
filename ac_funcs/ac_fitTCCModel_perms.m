@@ -1,5 +1,5 @@
-function fit = ac_fitTCCModel(adata,mode,fit)
-%% AC_FITTCCMODEL
+function fit = ac_fitTCCModel_perms(adata,mode,fit)
+%% AC_FITTCCMODEL_PERMS
 % This version of the model fits the "TCC" model from this paper:
 % Schurgin, M. W., Wixted, J. T., & Brady, T. F. (2018). Psychological scaling reveals a single parameter framework for visual working memory. bioRxiv, 325472.
 %
@@ -86,13 +86,13 @@ if isempty(strfind(mode,'nocv'))
             keyboard
         end
         
-        trainfit = ac_fitTCCModel(train,strcat(mode,',nocv'));
-        testfit = ac_fitTCCModel(test,strcat(mode,',eval'),trainfit);
+        trainfit = ac_fitTCCModel_perms(train,strcat(mode,',nocv'));
+        testfit = ac_fitTCCModel_perms(test,strcat(mode,',eval'),trainfit);
         aprobs = [aprobs; testfit.probs];
         like(ri) = testfit.likelihood;
     end
     
-    fit = ac_fitTCCModel(adata,strcat(mode,',nocv'));
+    fit = ac_fitTCCModel_perms(adata,strcat(mode,',nocv'));
     fit.cv.probs = aprobs;
     fit.cv.likelihood = -nansum(log(aprobs));
     return

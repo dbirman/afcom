@@ -1,0 +1,12 @@
+Fit models across the conditions all together, either fix the bias parameters, or fix the sensitivity parameters (across conditions!) 	
+
+R^2: figure six binned data
+also try generating an ideal observer model in some way to show r^2? 
+
+Permutation test to make sure the models are actually fitting something more than zero?
+
+Because the report direction task is closer to ceiling, we learn more from the report color task. 
+
+Possble titlets: Bias accounts for more of attentional effects on a shared perceptual metric
+**mostly bias, cueing two things
+
