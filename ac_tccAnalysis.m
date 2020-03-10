@@ -100,7 +100,7 @@ end
 infos = infos(idxs);
 
 %% run the actual fitting procedure
-for ii = [1 5 6]%1:6 %length(infos)
+parfor ii = [1 5 6]%1:6 %length(infos)
     disp(infos{ii}.call);
     infos{ii}.fit = ac_fitTCCModel(infos{ii}.data,infos{ii}.call);
     infos{ii}.fit.data = infos{ii}.data;
@@ -114,21 +114,24 @@ for ii = [1 5 6]%1:6 %length(infos)
     if any(cellfun(@(x) ~isempty(strfind(info.call,x)),perm_calls))
         % only run permutations for the conditions that require it
         % (spatial/feature, all, and baseline)
-        perm = [];
-        parfor ri = 1:repeats
-            temp = info;
-            temp.data(:,12) = temp.data(randperm(size(info.data,1)),12);
-            % note this uses a faster fitting routine (has a max number of
-            % function evals, so it won't run for ever)
-            permFit = ac_fitTCCModel_perms(temp.data,temp.call);
-            perm(ri) = permFit.cv.likelihood;
-        end
-        infos{ii}.fit.perm = perm;
+%         perm = [];
+% %         parfor ri = 1:repeats
+% %             temp = info;
+% %             temp.data(:,12) = temp.data(randperm(size(info.data,1)),12);
+% %             % note this uses a faster fitting routine (has a max number of
+% %             % function evals, so it won't run for ever)
+% %             permFit = ac_fitTCCModel_perms(temp.data,temp.call);
+% %             perm(ri) = permFit.cv.likelihood;
+% %         end
+%         infos{ii}.fit.perm = perm;
     end
-    save(fullfile('~/proj/afcom/tcc_temp_infos.mat'),'infos');
+%     save(fullfile('~/proj/afcom/tcc_temp_infos.mat'),'infos');
 end
 disp('Fits complete');
+save(fullfile('~/proj/afcom/tcc_temp_infos_complete.mat'),'infos');
 
+%%
+load(fullfile('~/proj/afcom/tcc_temp_infos_complete.mat'));
 
 %% Sort all the fits
 
