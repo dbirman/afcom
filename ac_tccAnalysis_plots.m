@@ -3,6 +3,64 @@
 
 load(fullfile('~/proj/afcom/tcc_data.mat'));
 
+%% Get the permutations and look at their distributions
+perms = nan(8,2,6,100);
+like = nan(8,2,6);
+
+for si = 1:length(fits)
+    for ci = 1:2
+        for mi = 1:6
+            cfit = fits{si}{ci,mi};
+            if isfield(cfit,'perm') && all(cfit.perm~=0)
+                perms(si,ci,mi,:) = cfit.perm;
+            end
+            like(si,ci,mi) = cfit.cv.likelihood;
+        end
+    end
+end
+
+%% take all the permutations and remove the mean for each set
+perms_ = perms - repmat(nanmean(perms,4),1,1,1,100);
+% now find the 95% quantiles
+ci_perms = quantile(perms_(:),[.025 .975]);
+
+%% Check that the model likelihoods are > permutation likelihoods
+perm_mean = nanmean(perms,4);
+diff = perm_mean-like;
+
+figure;
+hist(diff(:));
+
+% indeed, all models except one are better, and that one is equal. I.e.
+% probably the data is garbage from that participant and they couldn't do
+% that task?
+
+%%
+h = figure;
+
+% just plot them all side by side
+num = [];
+for si = 1:size(perms,1)
+    for ci = 1:size(perms,2)
+        for mi = 1:size(perms,3)
+            vals = perms(si,ci,mi,:);
+            if any(~isnan(vals))
+                ci95 = bootci(1000,@nanmean,vals);
+                num(1,end+1) = ci95(1);
+                num(2,end) = ci95(2);
+            end
+        end
+    end
+end
+
+% the point of this is to show that the spread of permutations is tiny (<1
+% in the cross-validated information criterion). This means that any
+% differences >1 are probably significant, so the model comparisons we've
+% done are almost all useful to look at. It also means that the actual
+% models which are all WAY better fits than the permutations were valuable.
+hist(num(2,:)-num(1,:));
+
+
 %% Cross-validated likelihood
 % Let's pull all the CV likelihoods out to compare them, specifically the
 % cross-validated fits for the 4 models
@@ -26,16 +84,88 @@ end
 
  % critical comparison: if greater than zero, then there is value to using
  % non-shared bias parameters
-temp = cv(:,1,1)-cv(:,1,2);
-bootci(10000,@mean,temp(:))
+temp1 = cv(:,1,1)-cv(:,1,2);
+bootci(10000,@mean,temp1(:))
+% also do a ranksum test
 
 % if > 0, then there is value to using non-shared sensitivity parameters
-temp = cv(:,1,1)-cv(:,1,3);
-bootci(10000,@mean,temp(:))
+temp2 = cv(:,1,1)-cv(:,1,3);
+bootci(10000,@mean,temp2(:))
 
 % if > 0 then there is value to using non-shared parameters
-temp = cv(:,1,1)-cv(:,1,4);
-bootci(10000,@mean,temp(:))
+temp3 = cv(:,1,1)-cv(:,1,4);
+bootci(10000,@mean,temp3(:))
+
+%% Plot the overall cross-validated likelihoods for the different models in 
+% a way that you can compare for each subject individually
+
+h = figure;
+
+subplot(211); hold on
+
+cmap = colorblindmap/255;
+
+title('Select direction, report color');
+
+offsets = [1 2 3 4]; offsets = offsets - mean(offsets); offsets = offsets/8;
+
+p(1) = plot([1 8],[0 0],'--','Color',cmap(1,:));
+
+% add two more hlines which are the 95% confidence intervals from the
+% permutation tests. In fact since these are ~2, we'll just use 2 and be
+% consistent with the literature.
+temp = hline(-2,'--');
+set(temp,'Color',cmap(8,:));
+temp = hline(2,'--');
+set(temp,'Color',cmap(8,:));
+
+for si = 1:8
+    for mi = 2:4
+        like = cv(si,1,1) - cv(si,1,mi);
+        
+        p(mi) = plot(si+offsets(mi-1),like,'o','MarkerFaceColor',cmap(mi,:),'MarkerEdgeColor','w');
+    end
+end
+
+xlabel('Observer');
+ylabel('Relative fit (\Delta cross-validated likelihood)');
+
+legend(p,{'Shared parameters','Different bias','Different sensitivity','No shared parameters'});
+
+set(gca,'XTick',1:8,'YTick',[-5 0 5 10],'YTickLabel',{'Worse -5','0','+5','Better +10'});
+
+drawPublishAxis;
+
+subplot(212); hold on
+title('Select color, report direction');
+
+p(1) = plot([1 8],[0 0],'--','Color',cmap(1,:));
+
+% add two more hlines which are the 95% confidence intervals from the
+% permutation tests
+temp = hline(ci_perms(1),'--');
+set(temp,'Color',cmap(8,:));
+temp = hline(ci_perms(2),'--');
+set(temp,'Color',cmap(8,:));
+
+for si = 1:8
+    for mi = 2:4
+        like = cv(si,2,1) - cv(si,2,mi);
+        
+        p(mi) = plot(si+offsets(mi-1),like,'o','MarkerFaceColor',cmap(mi,:),'MarkerEdgeColor','w');
+    end
+end
+
+xlabel('Observer');
+ylabel('Relative fit (\Delta cross-validated likelihood)');
+
+legend(p,{'Shared parameters','Different bias','Different sensitivity','No shared parameters'});
+
+set(gca,'XTick',1:8,'YTick',[-5 0 5 10],'YTickLabel',{'Worse -5','0','+5','Better +10'});
+
+drawPublishAxis('figSize=[15,8.9]');
+
+savepdf(h,fullfile('~/proj/afcom/figures/','modelComparison.pdf'));
 
 %% Plot the quality of the fits 
 % using fits, a cell array of the fits to the two conditions, report
