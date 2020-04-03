@@ -297,7 +297,7 @@ savepdf(h,fullfile('~/proj/afcom/figures/','modelComparison.pdf'));
 xs = pi/64:pi/32:pi;
 
 reportType = {'color','direction'};
-resp = nan(length(fits),2,6,6,length(xs));
+resp = nan(length(fits),2,6,5,length(xs));
 model = resp;
 for subj = 1:length(fits)
     for cond = 1:2
@@ -327,6 +327,9 @@ for subj = 1:length(fits)
                     dt = cfit.params.dt_sh;
                 end
                 probs = computeTCCPDF(xs,dt);
+                if any(isnan(probs))
+                    disp('wtf')
+                end
                 model(subj,cond,mi,tt+1,:) = probs;
             end
         end
@@ -345,9 +348,11 @@ mu = repmat(nanmean(resp,5),1,1,1,1,32);
 % r2 = SSreg./SStotal;
 
 SStotal = sum((resp-mu).^2,5);
-SSres = sum((resp-model).^2,5);
+SSreg = sum((model-mu).^2,5);
+SSres = sum((resp-model).^2,5); % mean squared error
 
-r2 = SSres./SStotal;
+r2 = SSreg./SStotal;
+r2 = 1 - (SSres./SStotal);
 
 % correlation option for r^2
 % r2 = zeros(size(resp,1),size(resp,2),size(resp,3),size(resp,4));
@@ -370,22 +375,36 @@ r2_nodist = squeeze(r2(:,:,2,4));
 %% Average everything and plot the fits
 cmap = colorblindmap/255;
 
-resp_mu = squeeze(nanmean(resp));
-model_mu = squeeze(nanmean(model));
+cmap(4,:) = [0 0 0];
 
-resp_ci = bootci(1000,@nanmean,resp);
-model_ci = bootci(1000,@nanmean,model);
+% use model #3 the shared fit
+
+resp_use(:,:,1,:) = resp(:,:,1,1,:);
+resp_use(:,:,2,:) = resp(:,:,3,2,:);
+resp_use(:,:,3,:) = resp(:,:,4,3,:);
+resp_use(:,:,4,:) = resp(:,:,2,5,:);
+
+model_use(:,:,1,:) = model(:,:,1,1,:);
+model_use(:,:,2,:) = model(:,:,3,2,:);
+model_use(:,:,3,:) = model(:,:,4,3,:);
+model_use(:,:,4,:) = model(:,:,2,5,:);
+
+resp_mu = squeeze(nanmean(resp_use));
+model_mu = squeeze(nanmean(model_use));
+
+resp_ci = bootci(1000,@nanmean,resp_use);
+model_ci = bootci(1000,@nanmean,model_use);
 
 idxs = [1:12 14 16 20 24 32];
 
 px = pscale(xs);
 
-pos = [1 2 3 nan 4];
-tts = {0 1 2 nan 4};
+pos = [1 2 3 4];
+tts = {0 1 2 4};
 titles = {'Cue 4','Cue spatial','Cue feature','Baseline'};
 for cond = 1:2
     h = figure;
-    for ti = [1 2 3 5]
+    for ti = [1 2 3 4]
         tt = tts{ti};
         clear mmu mmu_ err err_ mu mu_
         subplot(max(pos),1,pos(ti)); hold on
@@ -403,7 +422,7 @@ for cond = 1:2
         a = axis;
         axis([0 1 0 0.4]);
         set(gca,'XTick',[0 0.5 1],'YTick',[0 0.25]);
-        if tt==5
+        if tt==4
             xlabel('Normalized psychphysical distance (a.u.)');
         ylabel('Response likelihood (pdf)');
         end
