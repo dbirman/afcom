@@ -103,7 +103,6 @@ infos = infos(idxs);
 parfor ii = [1 5 6]%1:6 %length(infos)
     disp(infos{ii}.call);
     infos{ii}.fit = ac_fitTCCModel(infos{ii}.data,infos{ii}.call);
-    infos{ii}.fit.data = infos{ii}.data;
     infos{ii}.fit.call = infos{ii}.call;
     infos{ii}.fit.dataType = infos{ii}.dataType;
     % now fit a number of permutation models as well, saving just the cv

@@ -37,6 +37,7 @@ function fit = ac_fitTCCModel(adata,mode,fit)
 %
 
 global fixedParams
+fit = struct;
 
 fixedParams.trialTypes = {'all','spatial','feature','target','baseline'};
 fixedParams.trialTypeVals = [0 1 2 3 4];
@@ -101,7 +102,6 @@ end
 %% PARAMETERS
 
 % params.lambda = [0.02 0 1 0 0.1];
-params.motor = 2*pi/180; % fix this for now
 
 % set up any shared parameters
 if ~isempty(strfind(mode,'sh_sens'))
@@ -135,11 +135,11 @@ else
 end
 
 % don't fit a bias unless requested (not useful, nobody has a bias)
-if ~isempty(strfind(mode,'bias'))
-    params.bias = [0 -pi pi -pi/8 pi/8];
-else
-    params.bias = 0; % [0 -pi pi];
-end
+% if ~isempty(strfind(mode,'bias'))
+%     params.bias = [0 -pi pi -pi/8 pi/8];
+% else
+%     params.bias = 0; % [0 -pi pi];
+% end
 
 [ip,minp,maxp,plb,pub] = initParams(params);
 
@@ -164,6 +164,7 @@ end
 fit.rawparams = bestparams;
 fit.trialTypes = fixedParams.trialTypes;
 fit.trialTypeVals = fixedParams.trialTypeVals;
+fit.data = adata;
 
 function [likelihood, fit] = vmlike(params,adata,computeOutput)
 global fixedParams
