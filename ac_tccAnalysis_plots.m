@@ -3,6 +3,59 @@
 
 load(fullfile('~/proj/afcom/tcc_data.mat'));
 
+%% Setup colors
+% we'll use colorblind colors, which has 8 colors
+% we need four for the model comparison (2-4 and 8)
+
+% we need 3 for the dprime comparison (5-7)
+
+cmap = colorblindmap/255;
+% set the colors for the task
+colors = struct;
+colors.all = cmap(5,:);
+colors.baseline = cmap(6,:);
+colors.shared = cmap(7,:);
+colors.spatial = cmap(2,:);
+colors.feature = cmap(3,:);
+
+%% Remove data that wasn't actually used in fitting
+trialTypes = {'all','spatial','feature','target','baseline'};
+trialTypeVals = [0 1 2 3 4];
+
+for si = 1:8
+    for ci = 1:2
+        for mi = 1:6
+            fit = fits{si}{ci,mi};
+            adata = fit.data;
+            
+            cTrialTypes = trialTypes;
+            cTrialTypeVals = trialTypeVals;
+            
+            mode = fit.call;
+            
+            keep = cellfun(@(x) ~isempty(strfind(mode,x)),cTrialTypes);
+            cTrialTypes = cTrialTypes(keep);
+            cTrialTypeVals = cTrialTypeVals(keep);
+
+            % remove trials we aren't fitting
+            if length(cTrialTypes)<5
+                disp(sprintf('Removing %i conditions that are not being fit',5-length(cTrialTypes)));
+                cTrialTypes = adata(:,2);
+                idxs = zeros(size(cTrialTypes));
+                for tt = 1:length(cTrialTypeVals)
+                    idxs = idxs + (cTrialTypes==cTrialTypeVals(tt));
+                end
+                disp(sprintf('Dropped %i trials',size(adata,1)-sum(idxs>0)));
+                adata = adata(logical(idxs),:);
+            end
+            
+            fit.data = adata;
+            clear adata
+            fits{si}{ci,mi} = fit;
+        end
+    end
+end
+
 %% Get the permutations and look at their distributions
 perms = nan(8,2,6,100);
 like = nan(8,2,6);
@@ -96,6 +149,59 @@ bootci(10000,@mean,temp2(:))
 temp3 = cv(:,1,1)-cv(:,1,4);
 bootci(10000,@mean,temp3(:))
 
+%% Mean cross-validated likelihoods
+% remove the means
+cv_demeaned = repmat(cv(:,:,1),1,1,4) - cv;
+
+% get the mean across subjects of each condition
+cv_ = squeeze(mean(cv_demeaned,1));
+cv_ci95 = squeeze(bootci(1000,@nanmean,cv_demeaned));
+cv_ci95 = squeeze(cv_ci95(2,:,:)) - cv_;
+
+h = figure;
+
+titles = {'Selection direction, report color','Select color, report direction'};
+
+for cond = 1:2
+    subplot(2,1,cond); hold on
+    plot([2 4],[0 0],'--k'); %,'Color',cmap(1,:));
+    for mi = 2:4
+        % add individuals first
+        plot(mi,cv_demeaned(:,cond,mi),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
+        
+        errbar(mi,cv_(cond,mi),cv_ci95(cond,mi),'-','Color','k');
+        plot(mi,cv_(cond,mi),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
+        % color version
+%         errbar(mi,cv_(cond,mi),cv_ci95(cond,mi),'-','Color',cmap(mi,:));
+%         plot(mi,cv_(cond,mi),'o','MarkerFaceColor',cmap(mi,:),'MarkerEdgeColor','w');
+    end
+
+    % permutation test significance
+%     temp = hline(ci_perms(1),'--r');
+%     set(temp,'Color',cmap(8,:));
+%     temp = hline(ci_perms(2),'--r');
+%     set(temp,'Color',cmap(8,:));
+
+    % just use +/- 2
+    hline(-2,'--r');
+    hline(2,'--r');
+
+    title(titles{cond});
+    axis([2 4 -10 15]);
+    
+    %     xlabel('Observer');
+    ylabel('Relative fit (\Delta cross-validated likelihood)');
+
+    %     legend(p,{'Shared parameters','Different bias','Different sensitivity','No shared parameters'});
+
+    set(gca,'XTick',[2 3 4],'XTickLabel',{'Separate bias','Separate sens','Both separate'},'YTick',[-5 0 5],'YTickLabel',{'Worse -5','0','Better +5'});
+
+    drawPublishAxis('figSize=[8.9,10]');
+
+end
+
+savepdf(h,fullfile('~/proj/afcom/figures','modelComparison_avg.pdf'));
+
 %% Plot the overall cross-validated likelihoods for the different models in 
 % a way that you can compare for each subject individually
 
@@ -170,12 +276,12 @@ savepdf(h,fullfile('~/proj/afcom/figures/','modelComparison.pdf'));
 %% Plot the quality of the fits 
 % using fits, a cell array of the fits to the two conditions, report
 % color/direction
-cmap = colorblindmap/255;
 
 % Note that all of the non-target directions are uniformly distributed, so
 % in practice you can show the fit of the model by just assuming that the
 % target sensitivity is just reduced by 1-%target bias? We'll see if that
-% works...
+% works... <- note from 3/20/20, I have no idea what that comment is
+% about?
 
 % average the respDistance for each condition separately (trialType
 
@@ -184,46 +290,85 @@ cmap = colorblindmap/255;
 % ANGLE1 ANGLE2 ANGLE3 ANGLE4 RESPANGLE RESPDISTANCE DISTDISTANCE RUNS RT
 %    8      9     10     11      12          13            14      15  16
 
+% Note that because the wrong data was kept in the fit, we have to remove
+% data types that are irrelevant
+
 % bin centers
 xs = pi/64:pi/32:pi;
 
 reportType = {'color','direction'};
-resp = zeros(length(fits),2,3,length(xs));
+resp = nan(length(fits),2,6,6,length(xs));
 model = resp;
 for subj = 1:length(fits)
     for cond = 1:2
-        sfits = fits{subj};
-        cfits = {sfits{cond,1}, sfits{cond,2}, sfits{cond,6}};
-        tts = {[0],[4],[1 2]};
-        rs = [1 3 2];
-        for ci = 1:length(tts)
-            cfit = cfits{ci};
-            tt = tts{ci};
+        for mi = 1:6
+            % pull the current fit object
+            cfit = fits{subj}{cond,mi};
             
-            % get the adata from these fits, they're all the same so it
-            % doesn't matter which one we use
-            ttdata = [];
-            for ti = 1:length(tt)
-                ttdata = [ttdata ; sel(cfit.data,2,tt(ti))];
+            % for each trial type, bin the response distances
+            tts = unique(cfit.data(:,2));
+            for ti = 1:length(tts)
+                tt = tts(ti);
+                
+                % bin the values
+                tdata = cfit.data(cfit.data(:,2)==tt,:);
+                
+                [c,~] = hist(tdata(:,13),xs);
+                % normalize data for averaging later
+                c = c ./ sum(c);
+                % save
+                resp(subj,cond,mi,tt+1,:) = c;
+                
+                % get the model fits, note that the choice of dt depends on
+                % the type of model that was fit here
+                if isfield(cfit.params,sprintf('dt_%i',tt))
+                    dt = cfit.params.(sprintf('dt_%i',tt));
+                else
+                    dt = cfit.params.dt_sh;
+                end
+                probs = computeTCCPDF(xs,dt);
+                model(subj,cond,mi,tt+1,:) = probs;
             end
-
-            % bin the values
-            [c,~] = hist(ttdata(:,13),xs);
-            % normalize counts (so we can average them later)
-            c = c ./ sum(c);
-            % save
-            resp(subj,cond,rs(ci),:) = c;
-
-
-            % compute the model fit
-            dt = cfit.params.dt_sh;
-            probs = computeTCCPDF(xs,dt);
-            model(subj,cond,rs(ci),:) = probs;
         end
     end
 end
 
+%% Let's compute R^2 on these binned responses while we're here
+
+% there are two conditions and there are six models, compute r^2 for each
+% one
+
+% one option for r^2
+mu = repmat(nanmean(resp,5),1,1,1,1,32);
+% SStotal = sum((resp - mu).^2,5);
+% SSreg = sum((model - mu).^2,5);
+% r2 = SSreg./SStotal;
+
+SStotal = sum((resp-mu).^2,5);
+SSres = sum((resp-model).^2,5);
+
+r2 = SSres./SStotal;
+
+% correlation option for r^2
+% r2 = zeros(size(resp,1),size(resp,2),size(resp,3),size(resp,4));
+% for i = 1:8
+%     for j = 1:2
+%         for k = 1:6
+%             for l = 1:6
+%                 r2(i,j,j,l) = corr(squeeze(model(i,j,k,l,:)),squeeze(resp(i,j,k,l,:))).^2;
+%             end
+%         end
+%     end
+% end
+
+r2 = r2(:,:,:,[1 2 3 5]); % remove trial types that aren't uncued, spatial, feature, or baseline
+
+% get the r^2 for the all condition and the baseline condition 
+r2_uncued = squeeze(r2(:,:,1,1));
+r2_nodist = squeeze(r2(:,:,2,4));
+
 %% Average everything and plot the fits
+cmap = colorblindmap/255;
 
 resp_mu = squeeze(nanmean(resp));
 model_mu = squeeze(nanmean(model));
@@ -235,22 +380,26 @@ idxs = [1:12 14 16 20 24 32];
 
 px = pscale(xs);
 
-pos = [1 2 3];
+pos = [1 2 3 nan 4];
+tts = {0 1 2 nan 4};
+titles = {'Cue 4','Cue spatial','Cue feature','Baseline'};
 for cond = 1:2
     h = figure;
-    for tt = [1 2 3]
+    for ti = [1 2 3 5]
+        tt = tts{ti};
         clear mmu mmu_ err err_ mu mu_
-        subplot(3,1,pos(tt)); hold on
+        subplot(max(pos),1,pos(ti)); hold on
+        title(titles{pos(ti)});
         px_ = px(idxs);
-        mmu = squeeze(model_mu(cond,tt,:));
+        mmu = squeeze(model_mu(cond,ti,:));
         mmu_ = mmu(idxs);
-        plot(px_,mmu_,'-','Color',cmap(tt,:));
-        err = squeeze(resp_ci(2,1,cond,tt,:))-squeeze(resp_mu(cond,tt,:));
+        plot(px_,mmu_,'-','Color',cmap(ti,:));
+        err = squeeze(resp_ci(2,1,cond,ti,:))-squeeze(resp_mu(cond,ti,:));
         err_ = err(idxs);
-        mu = squeeze(resp_mu(cond,tt,:));
+        mu = squeeze(resp_mu(cond,ti,:));
         mu_ = mu(idxs);
-        e = errbar(px_,mu_,err_,'-','Color',cmap(tt,:));
-        plot(px_,mu_,'o','MarkerFaceColor',cmap(tt,:),'MarkerEdgeColor','w','MarkerSize',3);
+        e = errbar(px_,mu_,err_,'-','Color',cmap(ti,:));
+        plot(px_,mu_,'o','MarkerFaceColor',cmap(ti,:),'MarkerEdgeColor','w','MarkerSize',3);
         a = axis;
         axis([0 1 0 0.4]);
         set(gca,'XTick',[0 0.5 1],'YTick',[0 0.25]);
@@ -260,296 +409,406 @@ for cond = 1:2
         end
         drawPublishAxis('figSize=[4.4,8.9]');   
     end
-    savepdf(h,fullfile('~/proj/afcom/figures',sprintf('report%s_avg_model_fit.pdf',reportType{cond})));
+%     savepdf(h,fullfile('~/proj/afcom/figures',sprintf('report%s_avg_model_fit.pdf',reportType{cond})));
 end
 
+%% Get the dprime parameters and plot these against the baseline/all conditions
 
+dps = zeros(8,2,6);
+param_name = {'dt_sh','dt_sh','dt_sh','dt_sh'};
 
+% the dp parameter can be shared or specific, separate those
+dps_ab = zeros(8,2,4);
+dps_sf = zeros(8,2,2,2);
 
-
-
-
-
-%% OLD CODE (from before cross-validation comparisons)
-
-
-
-
-
-
-
-%% Plot separated likelihood functions
-
-for ci = 1:2
-    for di = 1
-        ac_plotSepLikes_tcc(allfits{ci,di});
-    end
-end
-
-%% Load parameters from each subject
-% pull out the dprime for spatial and feature (dt)
-
-for ci_ = 1:2
-    cmap_ = colorblindmap/255;
-
-    cbmap(1,:) = cmap_(2,:);
-    cbmap(2,:) = cmap_(3,:);
-
-    % cmap_ = brighten(cmap_,.25);
-    % 
-    % cbmap(3,:) = cmap(2,:);
-    % cbmap(4,:) = cmap(3,:);
-
-    dt_all = zeros(8,2);
-    bs_all = dt_all; bf_all = dt_all; bi_all = dt_all;
-    dt_s = dt_all; bs_s = dt_all; bf_s = dt_all; bi_s = dt_all;
-    for ai = 1:8
-        for ci = 1:2
-            fit = fits{ai}{ci};
-            dt_all(ai,ci) = fit.params.dt_1;
-            bs_all(ai,ci) = fit.params.bs_1;
-            bf_all(ai,ci) = fit.params.bf_1;
-            bi_all(ai,ci) = fit.params.bi_1;
-            dt_s(ai,ci) = fit.params.dt_2;
-            bs_s(ai,ci) = fit.params.bs_2;
-            bf_s(ai,ci) = fit.params.bf_2;
-            bi_s(ai,ci) = fit.params.bi_2;
-            dt_f(ai,ci) = fit.params.dt_3;
-            bs_f(ai,ci) = fit.params.bs_3;
-            bf_f(ai,ci) = fit.params.bf_3;
-            bi_f(ai,ci) = fit.params.bi_3;
-            dt_baseline(ai,ci) = fit.params.dt_5;
+for subj = 1:length(fits)
+    for cond = 1:2
+        for mi = 1:4
+            cfit = fits{subj}{cond,mi};
+            
+            dps_ab(subj,cond,mi) = cfit.params.dt_sh;
+        end
+        
+        % models where the dp is NOT shared 
+        for mi = 5:6
+            cfit = fits{subj}{cond,mi};
+            
+            dps_sf(subj,cond,mi-4,1) = cfit.params.dt_1;
+            dps_sf(subj,cond,mi-4,2) = cfit.params.dt_2;
         end
     end
-
-% normalize dt_s and dt_f to the baseline
-% dt_all = dt_all ./ dt_baseline;
-% dt_s = dt_s ./ dt_baseline;
-% dt_f = dt_f ./ dt_baseline;
-
-% Plot this twice -- once for the report color task, once for the report direction task
-
-    dt_all = dt_all(:,ci_);
-    dt_s = dt_s(:,ci_);
-    dt_f = dt_f(:,ci_);
-    dt_baseline = dt_baseline(:,ci_);
-    
-    dt_all = dt_all ./ dt_baseline;
-    dt_s = dt_s ./ dt_baseline;
-    dt_f = dt_f ./ dt_baseline;
-
-    % take the difference by condition
-    diff = dt_s-dt_f;
-    % reduce to the mean across difficulties and tasks for each subject
-    diff = squeeze(mean(mean(diff,3),2));
-    % bootstrap and plot
-    diff_ = mean(diff);
-    diff_ci = bootci(1000,@mean,diff);
-
-    % for plotting
-    dt_all_ = squeeze(mean(mean(dt_all,3),2));
-    dt_s_ = squeeze(mean(mean(dt_s,3),2));
-    dt_f_ = squeeze(mean(mean(dt_f,3),2));
-
-    dt_all_ci = bootci(1000,@mean,dt_all);
-    dt_s_ci = bootci(1000,@mean,dt_s);
-    dt_f_ci = bootci(1000,@mean,dt_f);
-
-
-    cmap = ac_cmap;
-    h = figure; hold on
-    
-    % plot individuals as lines
-    for ai = 1:size(dt_all,1)
-        plot([1 2 3],[dt_all(ai) dt_s(ai) dt_f(ai)],'-','Color',[0.75 0.75 0.75]);
-    end
-    
-    errbar(1,mean(dt_all_),dt_all_ci(2)-mean(dt_all_),'-','Color',[0.75 0.75 0.75]);
-    plot(1,dt_all_,'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
-    plot(1,mean(dt_all_),'o','MarkerFaceColor',[0 0 0],'MarkerEdgeColor','w','MarkerSize',7);
-    errbar(2,mean(dt_s_),dt_s_ci(2)-mean(dt_s_),'-','Color','k');
-
-    % spatial
-    plot(2,dt_s_,'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
-    plot(2,mean(dt_s_),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',7);
-
-    % feature
-    errbar(3,mean(dt_f_),dt_f_ci(2)-mean(dt_f_),'-','Color','k');
-    plot(3,dt_f_,'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
-    plot(3,mean(dt_f_),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',7);
-    axis([0 3 0 1]);
-    set(gca,'XTick',[1 2 3],'XTickLabel',{'Cue 4','Cue side','Cue feature'},'YTick',[0 1]);
-    ylabel('Sensitivity (d'')');
-    text(0,1,'Ceiling');
-    hline(1,'--k');
-%     hline(mean(dt_baseline(:)),'--k');
-%     text(0,mean(dt_baseline(:)),'Ceiling');
-    text(1,0.5,sprintf('Difference: %1.2f, 95%% CI [%1.2f, %1.2f]',diff_,diff_ci(1),diff_ci(2)));
-    drawPublishAxis('figSize=[4.5,4.5]');
-
-
-% 	savepdf(h,fullfile('~/proj/afcom/figures',sprintf('dprime_%s.pdf',reportType{ci_})));
 end
 
-%% Save data again
-dt_all = zeros(8,2);
-bs_all = dt_all; bf_all = dt_all; bi_all = dt_all;
-dt_s = dt_all; bs_s = dt_all; bf_s = dt_all; bi_s = dt_all;
-for ai = 1:8
-    for ci = 1:2
-        fit = fits{ai}{ci};
-        dt_all(ai,ci) = fit.params.dt_1;
-        bs_all(ai,ci) = fit.params.bs_1;
-        bf_all(ai,ci) = fit.params.bf_1;
-        bi_all(ai,ci) = fit.params.bi_1;
-        dt_s(ai,ci) = fit.params.dt_2;
-        bs_s(ai,ci) = fit.params.bs_2;
-        bf_s(ai,ci) = fit.params.bf_2;
-        bi_s(ai,ci) = fit.params.bi_2;
-        dt_f(ai,ci) = fit.params.dt_3;
-        bs_f(ai,ci) = fit.params.bs_3;
-        bf_f(ai,ci) = fit.params.bf_3;
-        bi_f(ai,ci) = fit.params.bi_3;
-        dt_baseline(ai,ci) = fit.params.dt_5;
-    end
-end
-%% Also generate a plot which shows the fit of the TCC model (w/ these parameters)
-% to the individual subject data? 
-
-%% Now generate plots showing how bias changes between conditions
-
-to = -0.025;
-sgap = 0.005;
-bgap = 0.01;
-
-for cond = 1:2
-    h = figure;
-
-    % generate three subplots
-    subplot(3,1,1); hold on
-    
-    % ALL CONDITION
-    
-    % average the values
-    bs = nanmean(bs_all(:,cond));
-    bf = nanmean(bf_all(:,cond));
-    bi = nanmean(bi_all(:,cond));
-    
-    subplot(311); hold on
-    % this helper function assumes there is a value "vals" that exists
-    % which has the bs/bf/bi beta weights in it. It does the rest of the
-    % job of plotting them into the axes with the appropriate scale
-    help_ac_plot_bias;
-    
-    bs = nanmean(bs_s(:,cond));
-    bf = nanmean(bf_s(:,cond));
-    bi = nanmean(bi_s(:,cond));
-    subplot(312); hold on
-    help_ac_plot_bias;
-    
-    
-    bs = nanmean(bs_f(:,cond));
-    bf = nanmean(bf_f(:,cond));
-    bi = nanmean(bi_f(:,cond));
-    subplot(313); hold on
-    help_ac_plot_bias;
-    
-    reportType = {'color','direction'};
-%     savepdf(h,fullfile('~/proj/afcom/figures',sprintf('ac_bias_%s.pdf',reportType{cond})));
-    
-    % TODO: Output based on condition, and add labels to the different
-    % conditions (or do this in the paper? 
-end
+%% get the mean and CI for various parts of the paper
+mu = mean(dps_ab(:,1,1));
+ci = bootci(1000,@mean,dps_ab(:,1,1));
+disp(sprintf('Uncued mean report-color %1.2f 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+mu = mean(dps_ab(:,2,1));
+ci = bootci(1000,@mean,dps_ab(:,2,1));
+disp(sprintf('Uncued mean report-direction %1.2f 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
 
 
-%% Now generate a bias plot that is the average of the two conditions
-to = -0.025;
-sgap = 0.005;
-bgap = 0.01;
+mu = mean(dps_ab(:,1,2));
+ci = bootci(1000,@mean,dps_ab(:,1,2));
+disp(sprintf('Baseline mean report-color %1.2f 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+mu = mean(dps_ab(:,2,2));
+ci = bootci(1000,@mean,dps_ab(:,2,2));
+disp(sprintf('Baseline mean report-direction %1.2f 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+
+% test baseline against uncued
+[p,h,stats] = signrank(dps_ab(:,1,2)-dps_ab(:,1,1));
+disp(sprintf('No-distractor - uncued report-color signed rank P=%1.2f',p));
+[p,h,stats] = signrank(dps_ab(:,2,2)-dps_ab(:,2,1));
+disp(sprintf('No-distractor - uncued report-color signed rank P=%1.2f',p));
+
+
+mu = mean(dps_ab(:,1,3));
+ci = bootci(1000,@mean,dps_ab(:,1,3));
+disp(sprintf('Shared mean report-color %1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+mu = mean(dps_ab(:,2,3));
+ci = bootci(1000,@mean,dps_ab(:,2,3));
+disp(sprintf('Shared mean report-direction %1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+
+% difference between shared mean and uncued mean
+shmu = dps_ab(:,:,3);
+unmu = dps_ab(:,:,1);
+
+% tail right checks if X > Y
+[p,h,stats] = signrank(shmu(:,1)-unmu(:,1));%,0,'tail','right');
+disp(sprintf('Shared - uncued report-color signed rank P=%1.2f',p));
+[p,h,stats] = signrank(shmu(:,2)-unmu(:,2));%,'tail','right');
+disp(sprintf('Shared - uncued report-direction signed rank P=%1.2f',p));
+
+% check if separate s/f parameters are different from the shared parameter
+spatmu = dps_sf(:,:,2,1);
+featmu = dps_sf(:,:,2,2);
+[p,h,stats] = signrank(spatmu(:,1)-shmu(:,1));
+disp(sprintf('Spatial report-color unshared - shared signed rank P=%1.2f',p));
+[p,h,stats] = signrank(spatmu(:,2)-shmu(:,2));
+disp(sprintf('Spatial report-direction unshared - shared signed rank P=%1.2f',p));
+[p,h,stats] = signrank(featmu(:,1)-shmu(:,1));
+disp(sprintf('Feature report-color unshared - shared signed rank P=%1.2f',p));
+[p,h,stats] = signrank(featmu(:,2)-shmu(:,2));
+disp(sprintf('Feature report-direction unshared - shared signed rank P=%1.2f',p));
+
+% normalize dprime)
+normalized = max(zeros(size(dps_ab(:,:,1))),(dps_ab(:,:,3)-dps_ab(:,:,1)))./(dps_ab(:,:,2)-dps_ab(:,:,1));
+
+mu = mean(normalized);
+ci = bootci(10000,@nanmean,normalized);
+disp(sprintf('Report-color normalized dp %1.1f%%, 95%% CI [%1.1f, %1.1f]',mu(1)*100,ci(1,1)*100,ci(2,1)*100));
+disp(sprintf('Report-direction normalized dp %1.1f%%, 95%% CI [%1.1f, %1.1f]',mu(2)*100,ci(1,2)*100,ci(2,2)*100));
+%% Plot the dp of the shared fit (which is basically the best) 
+% against the baseline and all fits, to get a sense of how much improvement
+% happens
+
 
 h = figure;
 
-% generate three subplots
-subplot(3,1,1); hold on
-
-% ALL CONDITION
-
-% average the values
-bs = nanmean(bs_all(:));
-bf = nanmean(bf_all(:));
-bi = nanmean(bi_all(:));
-
-subplot(311); hold on
-% this helper function assumes there is a value "vals" that exists
-% which has the bs/bf/bi beta weights in it. It does the rest of the
-% job of plotting them into the axes with the appropriate scale
-help_ac_plot_bias;
-
-bs = nanmean(bs_s(:));
-bf = nanmean(bf_s(:));
-bi = nanmean(bi_s(:));
-subplot(312); hold on
-help_ac_plot_bias;
-
-
-bs = nanmean(bs_f(:));
-bf = nanmean(bf_f(:));
-bi = nanmean(bi_f(:));
-subplot(313); hold on
-help_ac_plot_bias;
-
 reportType = {'color','direction'};
-savepdf(h,fullfile('~/proj/afcom/figures',sprintf('ac_bias_average.pdf')));
-    
+
+% take the mean across subjs
+dps_ab_ = squeeze(mean(dps_ab,1));
+dps_ab_ci = squeeze(bootci(1000,@nanmean,dps_ab));
+
+dps_sf_ = squeeze(mean(dps_sf,1));
+dps_sf_ci = squeeze(bootci(1000,@nanmean,dps_sf));
+
+% plot the color fits
+for cond = 1:2
+    subplot(2,1,cond); hold on
+    title(sprintf('Report %s',reportType{cond}));
+
+    color_opts = {colors.all colors.baseline colors.shared};
+    color_opts2 = {colors.spatial colors.feature};
+    pos = [1 5 2];
+    pos2 = [3 4];
+
+    for subj = 1:8
+%         plot(pos,squeeze(dps_ab(subj,cond,1:3)),'-','Color',[0.5 0.5 0.5]);
+        for i = 1:3
+            plot(pos(i),dps_ab(subj,cond,i),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w');
+        end
+        for j = 1:2
+            % the 2 in the third column is to grab the "full" model with
+            % all parameters fit
+            plot(pos2(j),dps_sf(subj,cond,2,j),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w');
+        end
+    end
+
+    clear p
+    for i = 1:3
+        p(pos(i)) = plot(pos(i),dps_ab_(cond,i),'o','MarkerFaceColor',color_opts{i},'MarkerEdgeColor','w'); % all
+    end
+    for j = 1:2
+        p(pos2(j)) = plot(pos2(j),dps_sf_(cond,2,j),'o','MarkerFaceColor',color_opts2{j},'MarkerEdgeColor','w'); % all
+    end
+
+%     legend(p,{'All','Shared','Spatial','Feature','Baseline'},'Location','NorthWest');
+
+    axis([-1 7 0 3]);
+
+    set(gca,'XTick',[1 2 3 4 5],'XTickLabel',{'All','Shared','Spatial','Feature','Baseline'});
+
+    ylabel('Sensitivity (d'')');
+
+    drawPublishAxis('figSize=[4.5 8.9]');
+end
+
+savepdf(h,fullfile('~/proj/afcom/figures/dp_comparison.pdf'));
 
 
-%% Statistics
+%% Get the bias parameters and plot these against the baseline/all conditions
 
-%% Save data again
-dt_all = zeros(8,2);
-bs_all = dt_all; bf_all = dt_all; bi_all = dt_all;
-dt_s = dt_all; bs_s = dt_all; bf_s = dt_all; bi_s = dt_all;
-for ai = 1:8
-    for ci = 1:2
-        fit = fits{ai}{ci};
-        dt_all(ai,ci) = fit.params.dt_1;
-        bs_all(ai,ci) = fit.params.bs_1;
-        bf_all(ai,ci) = fit.params.bf_1;
-        bi_all(ai,ci) = fit.params.bi_1;
-        dt_s(ai,ci) = fit.params.dt_2;
-        bs_s(ai,ci) = fit.params.bs_2;
-        bf_s(ai,ci) = fit.params.bf_2;
-        bi_s(ai,ci) = fit.params.bi_2;
-        dt_f(ai,ci) = fit.params.dt_3;
-        bs_f(ai,ci) = fit.params.bs_3;
-        bf_f(ai,ci) = fit.params.bf_3;
-        bi_f(ai,ci) = fit.params.bi_3;
-        dt_baseline(ai,ci) = fit.params.dt_5;
+dps = zeros(8,2,6);
+
+% the dp parameter can be shared or specific, separate those
+bs = nan(8,2,3);
+bf = nan(8,2,3);
+bi = nan(8,2,3);
+% specific parameters (for the spatial/feature fits)
+bs_sf = nan(8,2,2,2);
+bf_sf = nan(8,2,2,2);
+bi_sf = nan(8,2,2,2);
+
+for subj = 1:length(fits)
+    for cond = 1:2
+        % models with shared bias parameters
+        idx = [1 2 3 -1 4];
+        for mi = [1 2 3 5]
+            cfit = fits{subj}{cond,mi};
+            
+            bs(subj,cond,idx(mi)) = cfit.params.bs_sh;
+            bf(subj,cond,idx(mi)) = cfit.params.bf_sh;
+            bi(subj,cond,idx(mi)) = cfit.params.bi_sh;
+        end
+        
+        % models where the bias params are NOT shared 
+        idx = [-1 -1 -1 1 -1 2];
+        for mi = [4 6]
+            cfit = fits{subj}{cond,mi};
+            
+            bs_sf(subj,cond,idx(mi),1) = cfit.params.bs_1;
+            bs_sf(subj,cond,idx(mi),2) = cfit.params.bs_2;
+            
+            bf_sf(subj,cond,idx(mi),1) = cfit.params.bf_1;
+            bf_sf(subj,cond,idx(mi),2) = cfit.params.bf_2;
+            
+            bi_sf(subj,cond,idx(mi),1) = cfit.params.bi_1;
+            bi_sf(subj,cond,idx(mi),2) = cfit.params.bi_2;
+        end
     end
 end
-% we've pulled out all the parameters here, now we need to average them and
-% compare them across conditions 
 
-%%
+%% Pull the values directly. The plots are kind of shit to work with
+% we'll just build the plots in illustrator directly instead
 
-bias_t_side = bs_s.*bf_s;
-bias_s_side = bs_s.*(1-bf_s);
-bias_f_side = (1-bs_s).*(1-bi_s);
-bias_d_side = (1-bs_s).*bi_s;
+% take the mean across subjects for the fits
 
-bias_t_feat = bs_f.*bf_f;
-bias_s_feat = bs_f.*(1-bf_f);
-bias_f_feat = (1-bs_f).*(1-bi_f);
-bias_d_feat = (1-bs_f).*bi_f;
+bs_ = squeeze(mean(bs));
+bf_ = squeeze(mean(bf));
+bi_ = squeeze(mean(bi));
 
-%%
+models = {'all','baseline','shared','shared_bias'};
+reportType = {'color','direction'};
+
+for cond = 1:2
+    
+    for mi = 1:4
+        
+        cbs = bs_(cond,mi);
+        cbf = bf_(cond,mi);
+        cbi = bi_(cond,mi);
+        
+        target = cbs * cbf;
+        side = cbs * (1-cbf);
+        feature = (1-cbs) * (1-cbi);
+        distractor = (1-cbs) * cbi;
+        
+        disp(sprintf('Report %s, model %s',reportType{cond},models{mi}));
+        disp(sprintf('Target %1.2f%%',target*100));
+        disp(sprintf('Side %1.2f%%',side*100));
+        disp(sprintf('Feature %1.2f%%',feature*100));
+        disp(sprintf('Distractor %1.2f%%',distractor*100));
+    end
+end
+
+%% Plot the bias on comparison figures specific for each parameter across models, like the sensitivity
+% we first need to convert the bs/bf/bi into target/side/feature/distractor
+% we also only need to get five values:
+% uncued (cue 4)
+% shared
+% spatial (from full model)
+% feature (from full model)
+% no-distractor (all)
+% columns are: subj | cond | model | bias parameter
+bias_data = nan(8,2,5,4);
+
+% make some temp holders
+tt = bs .* bf;
+ts = bs .* (1-bf);
+tf = (1-bs) .* (1-bi);
+ti = (1-bs) .* bi;
+
+% copy values into full data
+% uncued
+bias_data(:,:,1,1) = tt(:,:,1);
+bias_data(:,:,1,2) = ts(:,:,1);
+bias_data(:,:,1,3) = tf(:,:,1);
+bias_data(:,:,1,4) = ti(:,:,1);
+
+% no-distractor / all
+bias_data(:,:,5,1) = tt(:,:,2);
+bias_data(:,:,5,2) = ts(:,:,2);
+bias_data(:,:,5,3) = tf(:,:,2);
+bias_data(:,:,5,4) = ti(:,:,2);
+
+% shared
+bias_data(:,:,2,1) = tt(:,:,3);
+bias_data(:,:,2,2) = ts(:,:,3);
+bias_data(:,:,2,3) = tf(:,:,3);
+bias_data(:,:,2,4) = ti(:,:,3);
+
+% now use the spatial/feature values
+tt_sf = bs_sf .* bf_sf;
+ts_sf = bs_sf .* (1-bf_sf);
+tf_sf = (1-bs_sf) .* (1-bi_sf);
+ti_sf = (1-bs_sf) .* bi_sf;
+
+% spatial
+bias_data(:,:,3,1) = tt_sf(:,:,2,1);
+bias_data(:,:,3,2) = ts_sf(:,:,2,1);
+bias_data(:,:,3,3) = tf_sf(:,:,2,1);
+bias_data(:,:,3,4) = ti_sf(:,:,2,1);
+
+% feature
+bias_data(:,:,4,1) = tt_sf(:,:,2,2);
+bias_data(:,:,4,2) = ts_sf(:,:,2,2);
+bias_data(:,:,4,3) = tf_sf(:,:,2,2);
+bias_data(:,:,4,4) = ti_sf(:,:,2,2);
+
+%% Plot (lots of subpanels)
+
+colorOpts = {[0 0 0],colors.shared,colors.spatial,colors.feature,[0 0 0]};
+
+reportType = {'color','direction'};
+params = {'target','side','feature','distractor'};
+
+for cond = 2
+    for param = 3
+        h = figure; hold on
+        
+        bdata = squeeze(bias_data(:,cond,:,param));
+        
+        for pos = 1:5
+            plot(pos,bdata(:,pos),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',3);
+        end
+        
+        mu = squeeze(nanmean(bdata));
+        ci95 = bootci(10000,@nanmean,bdata);
+        
+        for pos = 1:5
+            plot(pos,mu(pos),'o','MarkerFaceColor',colorOpts{pos},'MarkerEdgeColor','w','MarkerSize',5);
+        end
+        
+        axis([0 6 0 1]);
+        
+        set(gca,'XTick',1:5);
+        set(gca,'YTick',[0 1]);
+        
+        drawPublishAxis('figSize=[2.1,2.5]');
+        
+        savepdf(h,fullfile('~/proj/afcom/figures/',sprintf('%s_%s.pdf',reportType{cond},params{param})));
+    end
+end
+
+%% Statistics for bias parameters
+
+models = {'uncued','shared','spatial','feature','no-distractor'};
+% check if shared - unshared went up
+for cond = 1:2
+    for param = 3
+        bdata = squeeze(bias_data(:,cond,:,param));
+        disp(sprintf('beta%s',params{param}));
+        for mi = 2
+            disp(sprintf('report-%s %s, model: %s',reportType{cond},params{param},models{mi}));
+            disp(sprintf('shared: %1.2f%% %s: %1.2f%%',mean(bdata(:,1))*100,models{mi},100*mean(bdata(:,mi))));
+            [p,h,stats] = signrank(bdata(:,mi)-bdata(:,1),0,'tail','left');
+            disp(sprintf('P = %1.2f',p));
+        end
+    end
+end
+
+% check if any of the spatial/feature bias parameters are different from the shared
+% parametr
+% check if bias 3 / 4 are different from 2
+
+for cond = 1:2
+    for param = 3:4
+        shared = squeeze(bias_data(:,cond,2,:));
+        select = squeeze(bias_data(:,cond,param,:));
+        % check if any params are different
+        disp(sprintf('Checking %s against shared',models{param}));
+        for bi = 1:4
+            [p,h,stats] = signrank(shared(:,bi),select(:,bi));
+            disp(sprintf('%s P=%1.2f',params{bi},p));
+        end
+    end
+end
 
 
 
-% for example, is there a difference between dt for cue side and cue
-% feature? 
-% start by computing on aggregate data
-diff = dt_f-dt_s;
-ci = bootci(10000,@nanmean,diff(:));
-disp(sprintf('Cue Feature was %1.2f $d''$ higher, 95\\%% CI [%1.2f, %1.2f]',mean(diff(:)),ci(1),ci(2)));
 
+
+
+%% OLD CODE: NOT USED
+
+%% Plot the % of different bias and sensitivity plots
+
+
+
+for cond = 1:2
+    h = figure;
+    for mi = 1:4
+        s = subplot(4,1,mi); 
+
+        cbs = bs_(cond,mi);
+        cbf = bf_(cond,mi);
+        cbi = bi_(cond,mi);
+        
+        addBiasPlot(s,cbs,cbf,cbi,ac_cmap);
+        drawPublishAxis('figSize=[4.4,5]');
+        title(models{mi});
+
+    end
+
+    savepdf(h,fullfile('~/proj/afcom/figures/',sprintf('bias_report%s.pdf',reportType{cond})));
+end
+
+bs_sf_ = squeeze(mean(bs_sf));
+bf_sf_ = squeeze(mean(bf_sf));
+bi_sf_ = squeeze(mean(bi_sf));
+
+sf_models = {'shared_sens','shared_all'};
+
+for cond = 1:2
+        h = figure;
+    for mi = 1:2
+        
+        select = {'spatial','feature'};
+        
+        for si = 1:2
+            s = subplot(2,2,(mi-1)*2 + si); 
+
+            cbs = bs_sf_(cond,mi,si);
+            cbf = bf_sf_(cond,mi,si);
+            cbi = bi_sf_(cond,mi,si);
+            addBiasPlot(s,cbs,cbf,cbi,ac_cmap);
+            drawPublishAxis('figSize=[4.4,5]');
+            
+            title(sprintf('%s %s',sf_models{mi},select{si}));
+        end
+    end
+
+    savepdf(h,fullfile('~/proj/afcom/figures/',sprintf('bias_shared_report%s.pdf',reportType{cond})));
+end
