@@ -92,10 +92,11 @@ end
 % pvars = {'target'};
 % rvars = {'dead','duration','trialType','targetAngle','respAngle','respDistance'};
 
-data = [runs' dead' trialType' respDistance' dur' target1' target2'];
+data = [runs' dead' trialType' respDistance' dur' target1' target2' target'];
 keepIdxs = ~data(:,2);
 data = data(keepIdxs,:);
 
+header = {'runs','dead','trialType','respDistance','dur','target1','target2','target'};
 adata = data;
 
 disp(sprintf('Total trials: %i',size(data,1)));

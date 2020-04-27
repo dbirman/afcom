@@ -42,7 +42,7 @@ end
 
 %% Compute mean and SD for the histograms
 xs = pi/64:pi/32:pi;
-clear dprimes dprimef acs acf
+clear dprimes dprimef acs acf dprimes_target dprimef_target
 for ai = 1:length(adatas)
     ds = adatas{ai}(adatas{ai}(:,3)==1,:);
     df = adatas{ai}(adatas{ai}(:,3)==2,:);
@@ -50,6 +50,17 @@ for ai = 1:length(adatas)
     % fit the TCC model
     dprimes(ai) = fitTCC(ds(:,4));
     dprimef(ai) = fitTCC(df(:,4));
+    
+    % also fit TCC separately for blue/yellow and left/right
+    for target = 1:2
+        ds_t = ds(ds(:,8)==target,:);
+        dprimes_target(ai,target) = fitTCC(ds_t(:,4));
+        df_t = df(df(:,8)==target,:);
+        dprimef_target(ai,target) = fitTCC(df_t(:,4));
+    end
+    
+%     kappas(ai) = fitVonMisesEstimation(ds(:,4));
+%     kappaf(ai) = fitVonMisesEstimation(df(:,4));
     
     cs = hist(ds(:,4),xs);
     cs = cs ./ sum(cs);
@@ -65,11 +76,24 @@ end
 cis = bootci(10000,@nanmean,acs);
 cif = bootci(10000,@nanmean,acf);
 
+%% Make a figure showing how well the fits worked (check that the model is actuall working?)
+h = figure; hold on
+
+plot(xs,mean(acs),'o','MarkerFaceColor','k','MarkerEdgeColor','w');
+plot(xs,computeTCCPDF(xs,mean(dprimes)));
+y = vonMises(xs,0,mean(kappas));
+y = y./sum(y);
+plot(xs,y);
+
 %% info for text
 cidprimes = bootci(10000,@nanmean,dprimes);
 cidprimef = bootci(10000,@nanmean,dprimef);
 disp(sprintf('Mean spatial d'' value: %1.2f 95%% CI [%1.2f, %1.2f]',mean(dprimes),cidprimes(1),cidprimes(2)));
 disp(sprintf('Mean feature d'' value: %1.2f 95%% CI [%1.2f, %1.2f]',mean(dprimef),cidprimef(1),cidprimef(2)));
+
+ci = bootci(10000,@nanmean,dprimes-dprimef);
+
+disp(sprintf('Difference in d'': %1.2f 95%% CI [%1.2f, %1.2f]',mean(dprimes-dprimef),ci(1), ci(2)));
 %% Figure for all subject
 cmap = colorblindmap/255;
 
@@ -209,6 +233,10 @@ ddur = dp(:,2)-dp(:,1);
 cidur = bootci(10000,@nanmean,ddur);
 disp(sprintf('Difference in d'' due to duration: %1.2f 95%% CI [%1.2f, %1.2f]',mean(ddur),cidur(1),cidur(2)));
 
+% signed-rank test
+p = signrank(dp(:,1),dp(:,2));
+
+disp(sprintf('signed-rank %P=%1.2f',p));
 
 %% DISTANCE PLOTS
 
@@ -277,6 +305,8 @@ savepdf(h,fullfile('~/proj/afcom/figures','distance.pdf'));
 ddur = dp(:,1)-dp(:,2);
 cidur = bootci(10000,@nanmean,ddur);
 disp(sprintf('Difference in d'' due to distance: %1.2f 95%% CI [%1.2f, %1.2f]',mean(ddur),cidur(1),cidur(2)));
+
+p = signrank(dp(:,1),dp(:,2));
 
 %%
 %%%%%%% FINISHED
