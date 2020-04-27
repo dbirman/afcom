@@ -60,10 +60,18 @@ elseif sum(like>1.01)
 end
 
 % convolve with a 2-degree error
-
+noconv = like;
 % create a 2-degree normal distribution
 sigma = 1/sqrt(2*log(2))*pi/180; % 2 degree error, but convert to radians
 y = normpdf(rads,median(rads),sigma);
 % convolve the likelihood
 y = y./sum(y);
 like = conv(like,y,'same');
+% for some reason the last value drops by 50%
+like = [like(1:end-1) like(end)*2];
+% re-normalize
+like = like./sum(like);
+%%
+% h = figure; hold on
+% plot(rads,like,'-r');
+% plot(rads,noconv,'-b');
