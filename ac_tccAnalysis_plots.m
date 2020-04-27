@@ -149,6 +149,21 @@ bootci(10000,@mean,temp2(:))
 temp3 = cv(:,1,1)-cv(:,1,4);
 bootci(10000,@mean,temp3(:))
 
+%% Signed rank tests for the cross-validated likelihoods
+
+% check whether each set of CVs is better than the baseline model, this
+% means that the cv(:,1,1) is LARGER than the better model, then it's
+% better (or whatever)
+cv_demeaned = repmat(cv(:,:,1),1,1,4) - cv;
+
+for cond = 1:2
+    for compare = 2:4
+        p = signrank(squeeze(cv_demeaned(:,cond,compare)),0,'tail','right');
+        disp(p);
+    end
+end
+
+
 %% Mean cross-validated likelihoods
 % remove the means
 cv_demeaned = repmat(cv(:,:,1),1,1,4) - cv;
@@ -295,6 +310,8 @@ savepdf(h,fullfile('~/proj/afcom/figures/','modelComparison.pdf'));
 
 % bin centers
 xs = pi/64:pi/32:pi;
+% actual bins
+xbins = 0:pi/32:pi;
 
 reportType = {'color','direction'};
 resp = nan(length(fits),2,6,5,length(xs));
@@ -313,7 +330,10 @@ for subj = 1:length(fits)
                 % bin the values
                 tdata = cfit.data(cfit.data(:,2)==tt,:);
                 
-                [c,~] = hist(tdata(:,13),xs);
+                [c] = histc(tdata(:,13),xbins);
+                c(end-1) = c(end-1)+c(end); % in case any values exactly match pi
+                c = c(1:end-1); % remove the last value which is now empty
+                
                 % normalize data for averaging later
                 c = c ./ sum(c);
                 % save
@@ -341,18 +361,13 @@ end
 % there are two conditions and there are six models, compute r^2 for each
 % one
 
-% one option for r^2
-mu = repmat(nanmean(resp,5),1,1,1,1,32);
-% SStotal = sum((resp - mu).^2,5);
-% SSreg = sum((model - mu).^2,5);
-% r2 = SSreg./SStotal;
-
-SStotal = sum((resp-mu).^2,5);
-SSreg = sum((model-mu).^2,5);
+% For r^2 we will use the 1-res/total approach, appropriate for a nonlinear
+% fit
 SSres = sum((resp-model).^2,5); % mean squared error
+SStotal = sum(resp.^2,5);
 
-r2 = SSreg./SStotal;
-r2 = 1 - (SSres./SStotal);
+r2 = 1-SSres./SStotal;
+% r2 = 1 - (SSres./SStotal);
 
 % correlation option for r^2
 % r2 = zeros(size(resp,1),size(resp,2),size(resp,3),size(resp,4));
@@ -370,7 +385,44 @@ r2 = r2(:,:,:,[1 2 3 5]); % remove trial types that aren't uncued, spatial, feat
 
 % get the r^2 for the all condition and the baseline condition 
 r2_uncued = squeeze(r2(:,:,1,1));
+for cond = 1:2
+    mu = mean(r2_uncued(:,cond));
+    ci = bootci(1000,@nanmean,r2_uncued(:,cond));
+    disp(sprintf('%s: %1.2f [%1.2f, %1.2f]',reportType{cond},mu,ci(1),ci(2)));
+end
 r2_nodist = squeeze(r2(:,:,2,4));
+for cond = 1:2
+    mu = mean(r2_nodist(:,cond));
+    ci = bootci(1000,@nanmean,r2_nodist(:,cond));
+    disp(sprintf('%s: %1.2f [%1.2f, %1.2f]',reportType{cond},mu,ci(1),ci(2)));
+end
+disp('spatial');
+r2_spatial = squeeze(r2(:,:,3,2));
+for cond = 1:2
+    mu = mean(r2_spatial(:,cond));
+    ci = bootci(1000,@nanmean,r2_spatial(:,cond));
+    disp(sprintf('%s: %1.2f [%1.2f, %1.2f]',reportType{cond},mu,ci(1),ci(2)));
+end
+disp('feature');
+r2_feature = squeeze(r2(:,:,3,3));
+for cond = 1:2
+    mu = mean(r2_feature(:,cond));
+    ci = bootci(1000,@nanmean,r2_feature(:,cond));
+    disp(sprintf('%s: %1.2f [%1.2f, %1.2f]',reportType{cond},mu,ci(1),ci(2)));
+end
+
+%% Now compare the R^2 improvement that results from forcing shared bias vs. shared sensitivity
+% i.e. compute the full separate r^2 minus shared bias or minus shared
+% sensitivity. These changes are reported in the paper for the last figure
+% as a sort of "effect size" calculation. 
+
+%% compare the weird ones (subj 5)
+s5resp = squeeze(resp(5,1,1,1,:));
+s5model = squeeze(model(5,1,1,1,:));
+
+h =figure; hold on
+plot(xs,s5resp,'o');
+plot(xs,s5model,'-');
 
 %% Average everything and plot the fits
 cmap = colorblindmap/255;
@@ -428,7 +480,7 @@ for cond = 1:2
         end
         drawPublishAxis('figSize=[4.4,8.9]');   
     end
-%     savepdf(h,fullfile('~/proj/afcom/figures',sprintf('report%s_avg_model_fit.pdf',reportType{cond})));
+    savepdf(h,fullfile('~/proj/afcom/figures',sprintf('report%s_avg_model_fit.pdf',reportType{cond})));
 end
 
 %% Get the dprime parameters and plot these against the baseline/all conditions
@@ -466,7 +518,6 @@ mu = mean(dps_ab(:,2,1));
 ci = bootci(1000,@mean,dps_ab(:,2,1));
 disp(sprintf('Uncued mean report-direction %1.2f 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
 
-
 mu = mean(dps_ab(:,1,2));
 ci = bootci(1000,@mean,dps_ab(:,1,2));
 disp(sprintf('Baseline mean report-color %1.2f 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
@@ -475,11 +526,14 @@ ci = bootci(1000,@mean,dps_ab(:,2,2));
 disp(sprintf('Baseline mean report-direction %1.2f 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
 
 % test baseline against uncued
-[p,h,stats] = signrank(dps_ab(:,1,2)-dps_ab(:,1,1));
-disp(sprintf('No-distractor - uncued report-color signed rank P=%1.2f',p));
-[p,h,stats] = signrank(dps_ab(:,2,2)-dps_ab(:,2,1));
-disp(sprintf('No-distractor - uncued report-color signed rank P=%1.2f',p));
-
+diff = squeeze(dps_ab(:,1,2)-dps_ab(:,1,1));
+mu = mean(diff);
+ci = bootci(10000,@nanmean,diff);
+disp(sprintf('No-distractor - uncued report-color mu = %1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+diff = squeeze(dps_ab(:,2,2)-dps_ab(:,2,1));
+mu = mean(diff);
+ci = bootci(10000,@nanmean,diff);
+disp(sprintf('No-distractor - uncued report-direction mu = %1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
 
 mu = mean(dps_ab(:,1,3));
 ci = bootci(1000,@mean,dps_ab(:,1,3));
@@ -493,10 +547,14 @@ shmu = dps_ab(:,:,3);
 unmu = dps_ab(:,:,1);
 
 % tail right checks if X > Y
-[p,h,stats] = signrank(shmu(:,1)-unmu(:,1));%,0,'tail','right');
-disp(sprintf('Shared - uncued report-color signed rank P=%1.2f',p));
-[p,h,stats] = signrank(shmu(:,2)-unmu(:,2));%,'tail','right');
-disp(sprintf('Shared - uncued report-direction signed rank P=%1.2f',p));
+diff = squeeze(shmu(:,1)-unmu(:,1));%,0,'tail','right');
+mu = mean(diff);
+ci = bootci(10000,@nanmean,diff);
+disp(sprintf('Shared - uncued report-color mu = %1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+diff = squeeze(shmu(:,2)-unmu(:,2));%,0,'tail','right');
+mu = mean(diff);
+ci = bootci(10000,@nanmean,diff);
+disp(sprintf('Shared - uncued report-direction mu = %1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
 
 % check if separate s/f parameters are different from the shared parameter
 spatmu = dps_sf(:,:,2,1);

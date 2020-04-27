@@ -37,7 +37,6 @@ function fit = ac_fitTCCModel(adata,mode,fit)
 %
 
 global fixedParams
-fit = struct;
 
 fixedParams.trialTypes = {'all','spatial','feature','target','baseline'};
 fixedParams.trialTypeVals = [0 1 2 3 4];
@@ -69,6 +68,8 @@ if ~isempty(strfind(mode,'eval'))
     % evaluate fit of existing model
     [~,fit] = vmlike(fit.rawparams,adata,1);
     return
+else
+    fit = struct;
 end
 
 %% CROSS-VALIDATION
@@ -104,14 +105,22 @@ end
 % params.lambda = [0.02 0 1 0 0.1];
 
 % set up any shared parameters
-if ~isempty(strfind(mode,'sh_sens'))
+if ~isempty(strfind(mode,'one_sens'))
     fixedParams.shared_sensitivity = true;
+    fixedParams.one_sensitivity = true;
+    % one sensitivity parameter, shared across all four conditions
+    params.d_sh = [2 0.01 10 1 3];
+    
+elseif ~isempty(strfind(mode,'sh_sens'))
+    fixedParams.shared_sensitivity = true;
+    fixedParams.one_sensitivity = false;
     params.dt_sh = [2 0.01 10 1 3];
     params.ds_sh = [2 0.01 10 1 3];
     params.df_sh = [2 0.01 10 1 3];
     params.di_sh = [2 0.01 10 1 3];
 else
     fixedParams.shared_sensitivity = false;
+    fixedParams.one_sensitivity = false;
     for tt = 1:length(fixedParams.trialTypes)
         params.(sprintf('dt_%i',tt)) = [2 0.01 10 1 3];
         params.(sprintf('ds_%i',tt)) = [2 0.01 10 1 3];
@@ -252,7 +261,12 @@ for tt = 1:length(fixedParams.trialTypes)
     angles = angdist(repmat(tdata(:,12),1,4),angles);
 
     % get the parameters for this trialtype
-    if fixedParams.shared_sensitivity
+    if fixedParams.one_sensitivity && fixedParams.shared_sensitivity
+        dt = params.d_sh;
+        ds = params.d_sh;
+        df = params.d_sh;
+        di = params.d_sh;
+    elseif fixedParams.shared_sensitivity
         dt = params.dt_sh;
         ds = params.ds_sh;
         df = params.df_sh;
@@ -327,8 +341,13 @@ if computeOutput
     % for each trial type, compute the likelihood function?
     tx = 0:pi/128:pi;
     for tt = 1:length(fixedParams.trialTypes)
-
-        if fixedParams.shared_sensitivity
+        
+        if fixedParams.one_sensitivity && fixedParams.shared_sensitivity
+            dt = params.d_sh;
+            ds = params.d_sh;
+            df = params.d_sh;
+            di = params.d_sh;
+        elseif fixedParams.shared_sensitivity
             dt = params.dt_sh;
             ds = params.ds_sh;
             df = params.df_sh;
