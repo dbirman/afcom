@@ -94,21 +94,31 @@ end
 infos = infos(idxs);
 
 %% run the actual fitting procedure
-parfor ii = 1:length(infos)
+for ii = 1% 1:length(infos)
     disp(infos{ii}.call);
     infos{ii}.fit = ac_fitTCCModel(infos{ii}.data,infos{ii}.call);
     infos{ii}.fit.call = infos{ii}.call;
     infos{ii}.fit.dataType = infos{ii}.dataType;
 end
 disp('Fits complete');
-save(fullfile('~/proj/afcom/tcc_one_sens.mat'),'infos');
+% save(fullfile('~/proj/afcom/tcc_one_sens.mat'),'infos');
 
 %%
-load(fullfile('~/proj/afcom/tcc_temp_infos_complete.mat'));
+% Save the new fits into the existing fit dataset
+load(fullfile('~/proj/afcom/tcc_one_sens.mat'));
+load(fullfile('~/proj/afcom/tcc_data.mat'));
+
+for ii = 1:length(infos)
+    info = infos{ii};
+    
+    fits{info.subj}{info.ci,7} = info.fit;
+end
+
+save(fullfile('~/proj/afcom/tcc_data.mat'),'fits');
 
 %% Sort all the fits
 
-allfits = {}; fits = {};
+fits = {};
 for si = [-1 1:length(subjects)]
     fit = {};
     for ci = 1:length(cues)

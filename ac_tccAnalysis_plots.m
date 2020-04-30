@@ -113,6 +113,7 @@ end
 % models which are all WAY better fits than the permutations were valuable.
 hist(num(2,:)-num(1,:));
 
+%% Add a figure showing how far above the permuted datasets the true datasets are
 
 %% Cross-validated likelihood
 % Let's pull all the CV likelihoods out to compare them, specifically the
@@ -148,6 +149,17 @@ bootci(10000,@mean,temp2(:))
 % if > 0 then there is value to using non-shared parameters
 temp3 = cv(:,1,1)-cv(:,1,4);
 bootci(10000,@mean,temp3(:))
+
+%% One-sensitivity vs shared (i.e. checking whether sensitivity parameters are needed)
+
+% if positive, then there is value to using separate sensitivity parameters
+% (comes out to zero or negative, i.e. overfitting actually)
+for si = 1:length(fits)
+    for ci = 1:2
+        one_sens(si,ci) = fits{si}{ci,7}.cv.likelihood;
+        shared(si,ci) = fits{si}{ci,3}.cv.likelihood;
+    end
+end
 
 %% Signed rank tests for the cross-validated likelihoods
 
@@ -427,7 +439,7 @@ plot(xs,s5model,'-');
 %% Average everything and plot the fits
 cmap = colorblindmap/255;
 
-cmap(4,:) = [0 0 0];
+cmap(4,:) = [0.5 0.5 0.5];
 
 % use model #3 the shared fit
 
@@ -452,34 +464,37 @@ idxs = [1:12 14 16 20 24 32];
 px = pscale(xs);
 
 pos = [1 2 3 4];
+offset = [0 -.01 .01 0];
 tts = {0 1 2 4};
-titles = {'Cue 4','Cue spatial','Cue feature','Baseline'};
+titles = {'Uncued','Cue spatial','Cue feature','No-distractor'};
 for cond = 1:2
-    h = figure;
+    h = figure; hold on
+    clear p
     for ti = [1 2 3 4]
         tt = tts{ti};
         clear mmu mmu_ err err_ mu mu_
-        subplot(max(pos),1,pos(ti)); hold on
-        title(titles{pos(ti)});
+%         subplot(max(pos),1,pos(ti)); hold on
         px_ = px(idxs);
         mmu = squeeze(model_mu(cond,ti,:));
         mmu_ = mmu(idxs);
-        plot(px_,mmu_,'-','Color',cmap(ti,:));
+        plot(px_+offset(ti),mmu_,'-','Color',cmap(ti,:));
         err = squeeze(resp_ci(2,1,cond,ti,:))-squeeze(resp_mu(cond,ti,:));
         err_ = err(idxs);
         mu = squeeze(resp_mu(cond,ti,:));
         mu_ = mu(idxs);
-        e = errbar(px_,mu_,err_,'-','Color',cmap(ti,:));
-        plot(px_,mu_,'o','MarkerFaceColor',cmap(ti,:),'MarkerEdgeColor','w','MarkerSize',3);
+        e = errbar(px_+offset(ti),mu_,err_,'-','Color',cmap(ti,:));
+        p(ti) = plot(px_+offset(ti),mu_,'o','MarkerFaceColor',cmap(ti,:),'MarkerEdgeColor','w','MarkerSize',3);
         a = axis;
         axis([0 1 0 0.4]);
         set(gca,'XTick',[0 0.5 1],'YTick',[0 0.25]);
         if tt==4
             xlabel('Normalized psychphysical distance (a.u.)');
-        ylabel('Response likelihood (pdf)');
+            ylabel('Response likelihood (pdf)');
         end
-        drawPublishAxis('figSize=[4.4,8.9]');   
+        
     end
+    legend(p,titles);
+    drawPublishAxis('figSize=[4.4,8.9]'); 
     savepdf(h,fullfile('~/proj/afcom/figures',sprintf('report%s_avg_model_fit.pdf',reportType{cond})));
 end
 
