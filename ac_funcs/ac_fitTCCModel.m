@@ -121,11 +121,15 @@ elseif ~isempty(strfind(mode,'sh_sens'))
 else
     fixedParams.shared_sensitivity = false;
     fixedParams.one_sensitivity = false;
-    for tt = 1:length(fixedParams.trialTypes)
-        params.(sprintf('dt_%i',tt)) = [2 0.01 10 1 3];
-        params.(sprintf('ds_%i',tt)) = [2 0.01 10 1 3];
-        params.(sprintf('df_%i',tt)) = [2 0.01 10 1 3];
-        params.(sprintf('di_%i',tt)) = [2 0.01 10 1 3];
+    if ~isempty(strfind(mode,'sh_cued_sens'))
+        stop = 1;
+    else
+        for tt = 1:length(fixedParams.trialTypes)
+            params.(sprintf('dt_%i',tt)) = [2 0.01 10 1 3];
+            params.(sprintf('ds_%i',tt)) = [2 0.01 10 1 3];
+            params.(sprintf('df_%i',tt)) = [2 0.01 10 1 3];
+            params.(sprintf('di_%i',tt)) = [2 0.01 10 1 3];
+        end
     end
 end
 

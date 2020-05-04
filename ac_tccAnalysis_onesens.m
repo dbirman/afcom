@@ -3,6 +3,21 @@
 
 warning('THIS SCRIPT ONLY RUNES THE ONE-SENSITIVITY MODEL');
 
+% this was set up wrong originally. In fact we need to fit the following
+% models:
+
+% (1) Shared model (already fit), i.e. cued and uncued have separate
+% parameters (you have to add together the likelihoods for these to be
+% comparable to the following models:)
+% (2) Uncued + cued share sensitivity parameters - todo
+% (3) Uncued + cued share bias parameters - todo
+% (4) Uncued + cued share all parameters  - todo 
+
+% In the original version I fit a single d' parameter for all four dot
+% patches, but that's stupid (although it works). In fact we want to see if
+% the model "needs" the sensitivity or bias parameters to explain the effect of
+% cueing. 
+
 ac_setup;
 
 cues = [1 2];
@@ -54,7 +69,10 @@ for si = 1:length(subjects)
     dirdata = sel(adata,3,2);
     
     reportType = {'color','direction'};
-    calls = {'bads,spatial,feature,sh_sens,sh_bias,one_sens'};
+    calls = {'bads,all,spatial,feature,sh_cued_sens',...
+        'bads,all,spatial,feature,sh_cued_bias',...
+        'bads,all,spatial,feature,sh_cued_sens,sh_cued_bias',...
+        'bads,all,spatial,feature,sh_sens,sh_bias'}; % all shared
     mindurs = [0.25];
     maxdurs = [0.3];
     durationType = {'hard'};
