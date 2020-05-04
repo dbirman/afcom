@@ -81,8 +81,20 @@ ci_perms = quantile(perms_(:),[.025 .975]);
 perm_mean = nanmean(perms,4);
 diff = perm_mean-like;
 
-figure;
-hist(diff(:));
+% compute diff for each category separately
+diff_uncued = squeeze(diff(:,:,1));
+diff_nodist = squeeze(diff(:,:,2));
+diff_cued = squeeze(diff(:,:,3));
+
+datas = {diff_uncued, diff_nodist, diff_cued};
+groups = {'Uncued','No-distractor','Cued'};
+
+for di = 1:3
+    mu = nanmean(datas{di}(:));
+    ci95 = bootci(10000,@nanmean,datas{di}(:));
+    
+    disp(sprintf('%s: %1.2f, [%1.2f, %1.2f]',groups{di},mu,ci95(1),ci95(2)));
+end
 
 % indeed, all models except one are better, and that one is equal. I.e.
 % probably the data is garbage from that participant and they couldn't do
