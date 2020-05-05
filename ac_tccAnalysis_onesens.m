@@ -69,9 +69,9 @@ for si = 1:length(subjects)
     dirdata = sel(adata,3,2);
     
     reportType = {'color','direction'};
-    calls = {'bads,all,spatial,feature,sh_cued_sens',...
-        'bads,all,spatial,feature,sh_cued_bias',...
-        'bads,all,spatial,feature,sh_cued_sens,sh_cued_bias',...
+    calls = {'bads,all,spatial,feature,cued_sens,sh_bias',...
+        'bads,all,spatial,feature,cued_bias,sh_sens',...
+        'bads,all,spatial,feature,cued_sens,cued_bias',...
         'bads,all,spatial,feature,sh_sens,sh_bias'}; % all shared
     mindurs = [0.25];
     maxdurs = [0.3];
@@ -112,14 +112,14 @@ end
 infos = infos(idxs);
 
 %% run the actual fitting procedure
-for ii = 1% 1:length(infos)
+parfor ii = 1:length(infos)
     disp(infos{ii}.call);
     infos{ii}.fit = ac_fitTCCModel(infos{ii}.data,infos{ii}.call);
     infos{ii}.fit.call = infos{ii}.call;
     infos{ii}.fit.dataType = infos{ii}.dataType;
 end
 disp('Fits complete');
-% save(fullfile('~/proj/afcom/tcc_one_sens.mat'),'infos');
+save(fullfile('~/proj/afcom/tcc_one_sens.mat'),'infos');
 
 %%
 % Save the new fits into the existing fit dataset

@@ -121,9 +121,21 @@ elseif ~isempty(strfind(mode,'sh_sens'))
 else
     fixedParams.shared_sensitivity = false;
     fixedParams.one_sensitivity = false;
-    if ~isempty(strfind(mode,'sh_cued_sens'))
-        stop = 1;
+    if ~isempty(strfind(mode,'cued_sens'))
+        fixedParams.cued_sensitivity = true;
+        % we need two sets of parameters, one for uncued and one for cued
+        % (shared across both cue types)
+        params.dt_1 = [2 0.01 10 1 3];
+        params.ds_1 = [2 0.01 10 1 3];
+        params.df_1 = [2 0.01 10 1 3];
+        params.di_1 = [2 0.01 10 1 3];
+        % these will be split into dx_2 and dx_3 inside the function
+        params.dt_cu = [2 0.01 10 1 3];
+        params.ds_cu = [2 0.01 10 1 3];
+        params.df_cu = [2 0.01 10 1 3];
+        params.di_cu = [2 0.01 10 1 3];
     else
+        fixedParams.cued_sensitivity = false;
         for tt = 1:length(fixedParams.trialTypes)
             params.(sprintf('dt_%i',tt)) = [2 0.01 10 1 3];
             params.(sprintf('ds_%i',tt)) = [2 0.01 10 1 3];
@@ -140,10 +152,22 @@ if ~isempty(strfind(mode,'sh_bias'))
     params.bi_sh = [0.1 0 1 0 0.2];
 else
     fixedParams.shared_bias = false;
-    for tt = 1:length(fixedParams.trialTypes)
-        params.(sprintf('bs_%i',tt)) = [0.75 0 1 0.5 1];
-        params.(sprintf('bf_%i',tt)) = [0.75 0 1 0.5 1];
-        params.(sprintf('bi_%i',tt)) = [0.1 0 1 0 0.2];
+    if ~isempty(strfind(mode,'cued_bias'))
+        fixedParams.cued_bias = true;
+        params.bs_1 = [0.75 0 1 0.5 1];
+        params.bf_1 = [0.75 0 1 0.5 1];
+        params.bi_1 = [0.75 0 1 0.5 1];
+        
+        params.bs_cu = [0.75 0 1 0.5 1];
+        params.bf_cu = [0.75 0 1 0.5 1];
+        params.bi_cu = [0.75 0 1 0.5 1];
+    else
+        fixedParams.cued_bias = false;
+        for tt = 1:length(fixedParams.trialTypes)
+            params.(sprintf('bs_%i',tt)) = [0.75 0 1 0.5 1];
+            params.(sprintf('bf_%i',tt)) = [0.75 0 1 0.5 1];
+            params.(sprintf('bi_%i',tt)) = [0.1 0 1 0 0.2];
+        end
     end
 end
 
@@ -276,10 +300,24 @@ for tt = 1:length(fixedParams.trialTypes)
         df = params.df_sh;
         di = params.di_sh;
     else
-        dt = params.(sprintf('dt_%i',tt));
-        ds = params.(sprintf('ds_%i',tt));
-        df = params.(sprintf('df_%i',tt));
-        di = params.(sprintf('di_%i',tt));
+        if fixedParams.cued_sensitivity
+            if tt==1
+                dt = params.dt_1;
+                ds = params.ds_1;
+                df = params.df_1;
+                di = params.di_1;
+            else
+                dt = params.dt_cu;
+                ds = params.ds_cu;
+                df = params.df_cu;
+                di = params.di_cu;
+            end
+        else
+            dt = params.(sprintf('dt_%i',tt));
+            ds = params.(sprintf('ds_%i',tt));
+            df = params.(sprintf('df_%i',tt));
+            di = params.(sprintf('di_%i',tt));
+        end
     end
     
     liket = preComputeTCCPDF(xs,dt);
@@ -301,9 +339,21 @@ for tt = 1:length(fixedParams.trialTypes)
         bf = params.bf_sh;
         bi = params.bi_sh;
     else
-        bs = params.(sprintf('bs_%i',tt));
-        bf = params.(sprintf('bf_%i',tt));
-        bi = params.(sprintf('bi_%i',tt));
+        if fixedParams.cued_bias
+            if tt==1
+                bs = params.bs_1;
+                bf = params.bf_1;
+                bi = params.bi_1;
+            else
+                bs = params.bs_cu;
+                bf = params.bf_cu;
+                bi = params.bi_cu;
+            end
+        else
+            bs = params.(sprintf('bs_%i',tt));
+            bf = params.(sprintf('bf_%i',tt));
+            bi = params.(sprintf('bi_%i',tt));
+        end
     end
     betas = [bs*bf bs*(1-bf) (1-bs)*(1-bi) (1-bs)*bi];
 
@@ -357,10 +407,24 @@ if computeOutput
             df = params.df_sh;
             di = params.di_sh;
         else
-            dt = params.(sprintf('dt_%i',tt));
-            ds = params.(sprintf('ds_%i',tt));
-            df = params.(sprintf('df_%i',tt));
-            di = params.(sprintf('di_%i',tt));
+            if fixedParams.cued_sensitivity
+                if tt==1
+                    dt = params.dt_1;
+                    ds = params.ds_1;
+                    df = params.df_1;
+                    di = params.di_1;
+                else
+                    dt = params.dt_cu;
+                    ds = params.ds_cu;
+                    df = params.df_cu;
+                    di = params.di_cu;
+                end
+            else
+                dt = params.(sprintf('dt_%i',tt));
+                ds = params.(sprintf('ds_%i',tt));
+                df = params.(sprintf('df_%i',tt));
+                di = params.(sprintf('di_%i',tt));
+            end
         end
 
         liket = computeTCCPDF(tx,dt);
@@ -383,9 +447,21 @@ if computeOutput
             bf = params.bf_sh;
             bi = params.bi_sh;
         else
-            bs = params.(sprintf('bs_%i',tt));
-            bf = params.(sprintf('bf_%i',tt));
-            bi = params.(sprintf('bi_%i',tt));
+            if fixedParams.cued_bias
+                if tt==1
+                    bs = params.bs_1;
+                    bf = params.bf_1;
+                    bi = params.bi_1;
+                else
+                    bs = params.bs_cu;
+                    bf = params.bf_cu;
+                    bi = params.bi_cu;
+                end
+            else
+                bs = params.(sprintf('bs_%i',tt));
+                bf = params.(sprintf('bf_%i',tt));
+                bi = params.(sprintf('bi_%i',tt));
+            end
         end
         % scale the likelihood functions 
 
