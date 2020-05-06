@@ -56,6 +56,27 @@ for si = 1:8
     end
 end
 
+%% Analyze the cued fits models
+% using cued_fits
+
+% model #1 = all shared
+% model #2 = cued sens, shared bias
+% model #3 = shared sens, cued bias
+% model #4 = all cued (separate cued + uncued parameters)
+
+likes = zeros(8,2,4);
+
+for si = 1:length(fits)
+    for ci = 1:2
+        for mi = 1:4
+            likes(si,ci,mi) = cued_fits{si}{ci,mi}.cv.likelihood;
+        end
+    end
+end
+
+% check if all cued is useful
+diff = likes(:,:,1)-likes(:,:,4); % bigger numbers = cued is better
+
 %% Get the permutations and look at their distributions
 perms = nan(8,2,6,100);
 like = nan(8,2,6);

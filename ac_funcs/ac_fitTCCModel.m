@@ -115,9 +115,9 @@ elseif ~isempty(strfind(mode,'sh_sens'))
     fixedParams.shared_sensitivity = true;
     fixedParams.one_sensitivity = false;
     params.dt_sh = [2 0.01 10 1 3];
-    params.ds_sh = [2 0.01 10 1 3];
-    params.df_sh = [2 0.01 10 1 3];
-    params.di_sh = [2 0.01 10 1 3];
+%     params.ds_sh = [2 0.01 10 1 3];
+%     params.df_sh = [2 0.01 10 1 3];
+%     params.di_sh = [2 0.01 10 1 3];
 else
     fixedParams.shared_sensitivity = false;
     fixedParams.one_sensitivity = false;
@@ -126,21 +126,21 @@ else
         % we need two sets of parameters, one for uncued and one for cued
         % (shared across both cue types)
         params.dt_1 = [2 0.01 10 1 3];
-        params.ds_1 = [2 0.01 10 1 3];
-        params.df_1 = [2 0.01 10 1 3];
-        params.di_1 = [2 0.01 10 1 3];
+%         params.ds_1 = [2 0.01 10 1 3];
+%         params.df_1 = [2 0.01 10 1 3];
+%         params.di_1 = [2 0.01 10 1 3];
         % these will be split into dx_2 and dx_3 inside the function
         params.dt_cu = [2 0.01 10 1 3];
-        params.ds_cu = [2 0.01 10 1 3];
-        params.df_cu = [2 0.01 10 1 3];
-        params.di_cu = [2 0.01 10 1 3];
+%         params.ds_cu = [2 0.01 10 1 3];
+%         params.df_cu = [2 0.01 10 1 3];
+%         params.di_cu = [2 0.01 10 1 3];
     else
         fixedParams.cued_sensitivity = false;
         for tt = 1:length(fixedParams.trialTypes)
             params.(sprintf('dt_%i',tt)) = [2 0.01 10 1 3];
-            params.(sprintf('ds_%i',tt)) = [2 0.01 10 1 3];
-            params.(sprintf('df_%i',tt)) = [2 0.01 10 1 3];
-            params.(sprintf('di_%i',tt)) = [2 0.01 10 1 3];
+%             params.(sprintf('ds_%i',tt)) = [2 0.01 10 1 3];
+%             params.(sprintf('df_%i',tt)) = [2 0.01 10 1 3];
+%             params.(sprintf('di_%i',tt)) = [2 0.01 10 1 3];
         end
     end
 end
@@ -296,27 +296,27 @@ for tt = 1:length(fixedParams.trialTypes)
         di = params.d_sh;
     elseif fixedParams.shared_sensitivity
         dt = params.dt_sh;
-        ds = params.ds_sh;
-        df = params.df_sh;
-        di = params.di_sh;
+        ds = params.dt_sh;
+        df = params.dt_sh;
+        di = params.dt_sh;
     else
         if fixedParams.cued_sensitivity
             if tt==1
                 dt = params.dt_1;
-                ds = params.ds_1;
-                df = params.df_1;
-                di = params.di_1;
+                ds = params.dt_1;
+                df = params.dt_1;
+                di = params.dt_1;
             else
                 dt = params.dt_cu;
-                ds = params.ds_cu;
-                df = params.df_cu;
-                di = params.di_cu;
+                ds = params.dt_cu;
+                df = params.dt_cu;
+                di = params.dt_cu;
             end
         else
             dt = params.(sprintf('dt_%i',tt));
-            ds = params.(sprintf('ds_%i',tt));
-            df = params.(sprintf('df_%i',tt));
-            di = params.(sprintf('di_%i',tt));
+            ds = params.(sprintf('dt_%i',tt));
+            df = params.(sprintf('dt_%i',tt));
+            di = params.(sprintf('dt_%i',tt));
         end
     end
     
@@ -403,27 +403,27 @@ if computeOutput
             di = params.d_sh;
         elseif fixedParams.shared_sensitivity
             dt = params.dt_sh;
-            ds = params.ds_sh;
-            df = params.df_sh;
-            di = params.di_sh;
+            ds = params.dt_sh;
+            df = params.dt_sh;
+            di = params.dt_sh;
         else
             if fixedParams.cued_sensitivity
                 if tt==1
                     dt = params.dt_1;
-                    ds = params.ds_1;
-                    df = params.df_1;
-                    di = params.di_1;
+                    ds = params.dt_1;
+                    df = params.dt_1;
+                    di = params.dt_1;
                 else
                     dt = params.dt_cu;
-                    ds = params.ds_cu;
-                    df = params.df_cu;
-                    di = params.di_cu;
+                    ds = params.dt_cu;
+                    df = params.dt_cu;
+                    di = params.dt_cu;
                 end
             else
                 dt = params.(sprintf('dt_%i',tt));
-                ds = params.(sprintf('ds_%i',tt));
-                df = params.(sprintf('df_%i',tt));
-                di = params.(sprintf('di_%i',tt));
+                ds = params.(sprintf('dt_%i',tt));
+                df = params.(sprintf('dt_%i',tt));
+                di = params.(sprintf('dt_%i',tt));
             end
         end
 
