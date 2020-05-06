@@ -126,13 +126,27 @@ save(fullfile('~/proj/afcom/tcc_one_sens.mat'),'infos');
 load(fullfile('~/proj/afcom/tcc_one_sens.mat'));
 load(fullfile('~/proj/afcom/tcc_data.mat'));
 
+% Re-organize infos into cued_fits
+
+cued_fits = {};
+
 for ii = 1:length(infos)
     info = infos{ii};
     
-    fits{info.subj}{info.ci,7} = info.fit;
+    if ~isempty(strfind(info.call,'cued_sens,cued_bias'))
+        model = 4; % all cued separate from uncued
+    elseif ~isempty(strfind(info.call,'sh_sens,sh_bias'))
+        model = 1; % all shared
+    elseif ~isempty(strfind(info.call,'cued_sens,sh_bias'))
+        model = 2;
+    else
+        model = 3;
+    end
+    
+    cued_fits{info.subj}{info.ci,model} = info.fit;
 end
 
-save(fullfile('~/proj/afcom/tcc_data.mat'),'fits');
+save(fullfile('~/proj/afcom/tcc_data.mat'),'fits','cued_fits');
 
 %% Sort all the fits
 
