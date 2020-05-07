@@ -10,7 +10,7 @@ function like = computeTCCPDF(rads,dprime)
 %   likelihood - the likelihood that the TCC model will sample each x,
 %                normalized
 
-N = 100; % number of channels, anything over 100 converges 
+N = 200; % number of channels, anything over 100 converges 
 
 if any(rads>pi)
     disp('You might have submitted degrees, converting to radians');
@@ -31,7 +31,7 @@ px = 1-pscale(abs(rads)*180/pi);
 % px = px * dprime;
 sigma = 1 / dprime;
 % set up the encoder response-range
-minmax = 4*sigma;
+minmax = 5*sigma;
 rrange = linspace(-minmax,1+minmax,N);
 dr = rrange(2)-rrange(1);
 
@@ -68,10 +68,11 @@ y = normpdf(rads,median(rads),sigma);
 y = y./sum(y);
 like = conv(like,y,'same');
 % for some reason the last value drops by 50%
-like = [like(1:end-1) like(end)*2];
+% like = [like(1:end-1) like(end)*2];
 % re-normalize
 like = like./sum(like);
 %%
 % h = figure; hold on
 % plot(rads,like,'-r');
 % plot(rads,noconv,'-b');
+% stop = 1;

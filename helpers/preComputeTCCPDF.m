@@ -21,8 +21,8 @@ fname = fullfile('~/data/afcom_avg/','tcc.mat');
 if ~isfile(fname)
     disp('Rebuilding TCCPDF');
     tccLike = struct;
-    tccLike.xs = 0:pi/256:pi;
-    tccLike.dprimes = [0:.05:2 2:.1:6 6:.4:10 10:20 20:2:50 50:5:100];
+    tccLike.xs = -pi:pi/256:pi;
+    tccLike.dprimes = [0:.05:.5 .5:.025:1 1:.01:2.5 2.5:.1:6 6:.5:10 10:20 20:2:50 50:5:100];
     tccLike.dprimes = sort(unique(tccLike.dprimes));
     tccLike.like = zeros(length(tccLike.dprimes),length(tccLike.xs));
     disppercent(-1/length(tccLike.dprimes));
@@ -32,15 +32,15 @@ if ~isfile(fname)
     end
     disppercent(inf);
     % plot to see that it worked
-%         figure;
-%         surf(tccLike.xs,tccLike.dprimes,tccLike.like);
+        figure;
+        surf(tccLike.xs,tccLike.dprimes,tccLike.like);
     % save
     save(fname,'-struct','tccLike');
 elseif isempty(fields(tccLike))
     tccLike = load(fname);
 end
 
-probs = interp2(tccLike.xs,tccLike.dprimes,tccLike.like,rads,dprimes);
+probs = interp2(tccLike.xs,tccLike.dprimes,tccLike.like,rads,dprimes,'linear');
 
 if any(isnan(probs))
     warning('tccLike.like is not sufficiently large to encompass the data! Some data evaluated to NaN: breaking to keyboard');

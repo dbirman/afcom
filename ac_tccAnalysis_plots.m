@@ -76,6 +76,11 @@ end
 
 % check if all cued is useful
 diff = likes(:,:,1)-likes(:,:,4); % bigger numbers = cued is better
+drop_bias = likes(:,:,4)-likes(:,:,2);  % negative = cost to dropping bias
+drop_sens = likes(:,:,4)-likes(:,:,3);  % negative = cost to dropping sensitivity
+
+add_bias = likes(:,:,3)-likes(:,:,1);
+add_sens = likes(:,:,2)-likes(:,:,1);
 
 %% Get the permutations and look at their distributions
 perms = nan(8,2,6,100);
