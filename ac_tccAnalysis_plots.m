@@ -3,6 +3,9 @@
 
 load(fullfile('~/proj/afcom/tcc_data.mat'));
 
+%% Remove subject 2 - their eye position data suggests that they weren't able to fixate properly
+incl = logical([1 0 1 1 1 1 1 1]);
+
 %% Setup colors
 % we'll use colorblind colors, which has 8 colors
 % we need four for the model comparison (2-4 and 8)
@@ -12,8 +15,8 @@ load(fullfile('~/proj/afcom/tcc_data.mat'));
 cmap = colorblindmap/255;
 % set the colors for the task
 colors = struct;
-colors.all = cmap(5,:);
-colors.baseline = cmap(6,:);
+colors.all = [0 0 0];
+colors.baseline = [0.5 0.5 0.5];
 colors.shared = cmap(7,:);
 colors.spatial = cmap(2,:);
 colors.feature = cmap(3,:);
@@ -74,14 +77,39 @@ for si = 1:length(fits)
     end
 end
 
+idxs = incl;
 % check if all cued is useful
-diff = likes(:,:,1)-likes(:,:,4); % bigger numbers = cued is better
-drop_bias = likes(:,:,4)-likes(:,:,2);  % negative = cost to dropping bias
-drop_sens = likes(:,:,4)-likes(:,:,3);  % negative = cost to dropping sensitivity
+diff = likes(idxs,:,1)-likes(idxs,:,4); % bigger numbers = separating parameters for cued conditions is a better model
+bootci(1000,@mean,diff)
+drop_bias = likes(idxs,:,1)-likes(idxs,:,2);  % bigger numbers = separating cued sensitivity is a better model
+bootci(1000,@mean,drop_bias)
+drop_sens = likes(idxs,:,1)-likes(idxs,:,3);  % bigger numbers = separating cued bias is a better model
+bootci(1000,@mean,drop_sens)
 
-add_bias = likes(:,:,3)-likes(:,:,1);
-add_sens = likes(:,:,2)-likes(:,:,1);
+%% Figure showing effect of cueing, and cost of removing bias or sensitivity
+h = figure;
 
+for ci = 1:2
+    subplot(1,2,ci); hold on
+    
+    plot([1 3],[0 0],'--k');
+    
+    plot(1,diff(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
+    plot(1,mean(diff(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
+    
+    plot(2,drop_bias(:,ci)+diff(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
+    plot(2,mean(drop_bias(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
+    
+    plot(3,drop_sens(:,ci)+diff(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
+    plot(3,mean(drop_bias(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
+    
+    axis([0.5 3.5 0 20]);
+    set(gca,'XTick',1:3,'XTickLabel',{'Cued','Keep Sensitivity','Keep Bias'},'YTick',0:10:20);
+    
+    drawPublishAxis('figSize=[8.9,4.4]');
+end
+
+savepdf(h,fullfile('~/proj/afcom/figures/cued_comparison.pdf'));
 %% Get the permutations and look at their distributions
 perms = nan(8,2,6,100);
 like = nan(8,2,6);
@@ -486,16 +514,16 @@ resp_use(:,:,2,:) = resp(:,:,3,2,:);
 resp_use(:,:,3,:) = resp(:,:,4,3,:);
 resp_use(:,:,4,:) = resp(:,:,2,5,:);
 
-model_use(:,:,1,:) = model(:,:,1,1,:);
-model_use(:,:,2,:) = model(:,:,3,2,:);
-model_use(:,:,3,:) = model(:,:,4,3,:);
-model_use(:,:,4,:) = model(:,:,2,5,:);
+% model_use(:,:,1,:) = model(:,:,1,1,:);
+% model_use(:,:,2,:) = model(:,:,3,2,:);
+% model_use(:,:,3,:) = model(:,:,4,3,:);
+% model_use(:,:,4,:) = model(:,:,2,5,:);
 
 resp_mu = squeeze(nanmean(resp_use));
-model_mu = squeeze(nanmean(model_use));
+% model_mu = squeeze(nanmean(model_use));
 
 resp_ci = bootci(1000,@nanmean,resp_use);
-model_ci = bootci(1000,@nanmean,model_use);
+% model_ci = bootci(1000,@nanmean,model_use);
 
 idxs = [1:12 14 16 20 24 32];
 
@@ -513,9 +541,9 @@ for cond = 1:2
         clear mmu mmu_ err err_ mu mu_
 %         subplot(max(pos),1,pos(ti)); hold on
         px_ = px(idxs);
-        mmu = squeeze(model_mu(cond,ti,:));
-        mmu_ = mmu(idxs);
-        plot(px_+offset(ti),mmu_,'-','Color',cmap(ti,:));
+%         mmu = squeeze(model_mu(cond,ti,:));
+%         mmu_ = mmu(idxs);
+%         plot(px_+offset(ti),mmu_,'-','Color',cmap(ti,:));
         err = squeeze(resp_ci(2,1,cond,ti,:))-squeeze(resp_mu(cond,ti,:));
         err_ = err(idxs);
         mu = squeeze(resp_mu(cond,ti,:));
@@ -533,7 +561,46 @@ for cond = 1:2
     end
     legend(p,titles);
     drawPublishAxis('figSize=[4.4,8.9]'); 
-    savepdf(h,fullfile('~/proj/afcom/figures',sprintf('report%s_avg_model_fit.pdf',reportType{cond})));
+%     savepdf(h,fullfile('~/proj/afcom/figures',sprintf('report%s_avg_model_fit.pdf',reportType{cond})));
+end
+
+%% Plot response distributions separately for each participant
+colorOpts = {colors.all colors.spatial colors.feature colors.baseline};
+
+xs = pi/64:pi/32:pi;
+% actual bins
+xbins = 0:pi/32:pi;
+
+idxs = 1:32; %[1:12 14 16 20 24 32];
+px = pscale(xs);
+px = px(idxs);
+
+for si = 1:8
+    adata = adatas{si};
+    h = figure;
+    
+    for cond = 1:2
+        subplot(1,2,cond); hold on
+        % get trials of each report type
+        cdata = adata(adata(:,3)==cond,:);
+        
+        typeOpts = [0 1 2 4];
+        for ti = 1:length(typeOpts)
+        % get trials of each trial type
+            tt = typeOpts(ti);
+
+            tdata = cdata(cdata(:,2)==tt,:);
+
+            [c] = histc(tdata(:,13),xbins);
+            c(end-1) = c(end-1)+c(end); % in case any values exactly match pi
+            c_ = c(1:end-1); % remove the last value which is now empty
+
+            % normalize data for averaging later
+            c_ = c_ ./ sum(c);
+            plot(px,c_,'o','Color',colorOpts{ti});
+            axis([0 1 0 0.25]);
+        end
+    end
 end
 
 %% Get the dprime parameters and plot these against the baseline/all conditions

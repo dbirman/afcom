@@ -105,42 +105,27 @@ end
 % params.lambda = [0.02 0 1 0 0.1];
 
 % set up any shared parameters
-if ~isempty(strfind(mode,'one_sens'))
-    fixedParams.shared_sensitivity = true;
-    fixedParams.one_sensitivity = true;
-    % one sensitivity parameter, shared across all four conditions
-    params.d_sh = [2 0.01 10 1 3];
-    
-elseif ~isempty(strfind(mode,'sh_sens'))
+if ~isempty(strfind(mode,'sh_sens'))
+    % sensitivity parameter shared for all conditions
     fixedParams.shared_sensitivity = true;
     fixedParams.one_sensitivity = false;
     params.dt_sh = [2 0.01 10 1 3];
-%     params.ds_sh = [2 0.01 10 1 3];
-%     params.df_sh = [2 0.01 10 1 3];
-%     params.di_sh = [2 0.01 10 1 3];
 else
     fixedParams.shared_sensitivity = false;
     fixedParams.one_sensitivity = false;
     if ~isempty(strfind(mode,'cued_sens'))
+        % Separate sensitivity parameters for uncued and cued
         fixedParams.cued_sensitivity = true;
         % we need two sets of parameters, one for uncued and one for cued
         % (shared across both cue types)
         params.dt_1 = [2 0.01 10 1 3];
-%         params.ds_1 = [2 0.01 10 1 3];
-%         params.df_1 = [2 0.01 10 1 3];
-%         params.di_1 = [2 0.01 10 1 3];
         % these will be split into dx_2 and dx_3 inside the function
         params.dt_cu = [2 0.01 10 1 3];
-%         params.ds_cu = [2 0.01 10 1 3];
-%         params.df_cu = [2 0.01 10 1 3];
-%         params.di_cu = [2 0.01 10 1 3];
     else
+        % separate sensitivity parameters for *all* conditions
         fixedParams.cued_sensitivity = false;
         for tt = 1:length(fixedParams.trialTypes)
             params.(sprintf('dt_%i',tt)) = [2 0.01 10 1 3];
-%             params.(sprintf('ds_%i',tt)) = [2 0.01 10 1 3];
-%             params.(sprintf('df_%i',tt)) = [2 0.01 10 1 3];
-%             params.(sprintf('di_%i',tt)) = [2 0.01 10 1 3];
         end
     end
 end

@@ -148,6 +148,25 @@ end
 
 save(fullfile('~/proj/afcom/tcc_data.mat'),'fits','cued_fits');
 
+
+%% OLD OLD OLD OLD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 %% Sort all the fits
 
 fits = {};
