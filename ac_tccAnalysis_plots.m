@@ -434,6 +434,9 @@ for subj = 1:length(fits)
     end
 end
 
+resp = resp(incl,:,:,:,:);
+model = model(incl,:,:,:,:);
+
 %% Let's compute R^2 on these binned responses while we're here
 
 % there are two conditions and there are six models, compute r^2 for each
@@ -494,14 +497,6 @@ end
 % sensitivity. These changes are reported in the paper for the last figure
 % as a sort of "effect size" calculation. 
 
-%% compare the weird ones (subj 5)
-s5resp = squeeze(resp(5,1,1,1,:));
-s5model = squeeze(model(5,1,1,1,:));
-
-h =figure; hold on
-plot(xs,s5resp,'o');
-plot(xs,s5model,'-');
-
 %% Average everything and plot the fits
 cmap = colorblindmap/255;
 
@@ -514,16 +509,16 @@ resp_use(:,:,2,:) = resp(:,:,3,2,:);
 resp_use(:,:,3,:) = resp(:,:,4,3,:);
 resp_use(:,:,4,:) = resp(:,:,2,5,:);
 
-% model_use(:,:,1,:) = model(:,:,1,1,:);
-% model_use(:,:,2,:) = model(:,:,3,2,:);
-% model_use(:,:,3,:) = model(:,:,4,3,:);
-% model_use(:,:,4,:) = model(:,:,2,5,:);
+model_use(:,:,1,:) = model(:,:,1,1,:);
+model_use(:,:,2,:) = model(:,:,3,2,:);
+model_use(:,:,3,:) = model(:,:,4,3,:);
+model_use(:,:,4,:) = model(:,:,2,5,:);
 
 resp_mu = squeeze(nanmean(resp_use));
-% model_mu = squeeze(nanmean(model_use));
+model_mu = squeeze(nanmean(model_use));
 
 resp_ci = bootci(1000,@nanmean,resp_use);
-% model_ci = bootci(1000,@nanmean,model_use);
+model_ci = bootci(1000,@nanmean,model_use);
 
 idxs = [1:12 14 16 20 24 32];
 
@@ -541,9 +536,9 @@ for cond = 1:2
         clear mmu mmu_ err err_ mu mu_
 %         subplot(max(pos),1,pos(ti)); hold on
         px_ = px(idxs);
-%         mmu = squeeze(model_mu(cond,ti,:));
-%         mmu_ = mmu(idxs);
-%         plot(px_+offset(ti),mmu_,'-','Color',cmap(ti,:));
+        mmu = squeeze(model_mu(cond,ti,:));
+        mmu_ = mmu(idxs);
+        plot(px_+offset(ti),mmu_,'-','Color',cmap(ti,:));
         err = squeeze(resp_ci(2,1,cond,ti,:))-squeeze(resp_mu(cond,ti,:));
         err_ = err(idxs);
         mu = squeeze(resp_mu(cond,ti,:));

@@ -1,6 +1,7 @@
 
 %% Subjects
-subjects = [89 90 91 300 366 376 377 378];
+subjects = [89 91 300 366 376 377 378];
+% removed 90, insufficient vespene gas (actually, didn't eye track well). 
 
 clear SIDs
 for si = 1:length(subjects)
