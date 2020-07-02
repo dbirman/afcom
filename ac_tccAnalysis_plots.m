@@ -86,7 +86,43 @@ bootci(1000,@mean,drop_bias)
 drop_sens = likes(idxs,:,1)-likes(idxs,:,3);  % bigger numbers = separating cued bias is a better model
 bootci(1000,@mean,drop_sens)
 
-%% Figure showing effect of cueing, and cost of removing bias or sensitivity
+
+%% Cross-validated likelihood
+% Let's pull all the CV likelihoods out to compare them, specifically the
+% cross-validated fits for the 4 models
+cv = [];
+for si = 1:length(fits)
+    for ci = 1:2
+        for mi = 3:6
+            cv(si,ci,mi-2) = fits{si}{ci,mi}.cv.likelihood;
+        end
+    end
+end
+
+% now we can check whether the numbers are bigger or smaller. If a model
+% has a *smaller* value, itis a better model
+
+% CV model #:
+%  1         2    3      4
+% all sh   bias sens bias+sens
+
+% we're going to check if 
+
+ % critical comparison: if greater than zero, then there is value to using
+ % non-shared bias parameters
+temp1 = cv(:,1,1)-cv(:,1,2);
+bootci(10000,@mean,temp1(:))
+% also do a ranksum test
+
+% if > 0, then there is value to using non-shared sensitivity parameters
+temp2 = cv(:,1,1)-cv(:,1,3);
+bootci(10000,@mean,temp2(:))
+
+% if > 0 then there is value to using non-shared parameters
+temp3 = cv(incl,:,1)-cv(incl,:,4);
+bootci(10000,@mean,temp3(:))
+
+%% Figure showing effect of cueing
 h = figure;
 
 for ci = 1:2
@@ -97,16 +133,18 @@ for ci = 1:2
     plot(1,diff(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
     plot(1,mean(diff(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
     
-    plot(2,drop_bias(:,ci)+diff(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
-    plot(2,mean(drop_bias(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
+    plot(2,temp3(:,ci)+diff(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
+    plot(2,mean(temp3(:,ci)+diff(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
+%     plot(2,drop_bias(:,ci)+diff(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
+%     plot(2,mean(drop_bias(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
+%     
+%     plot(3,drop_sens(:,ci)+diff(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
+%     plot(3,mean(drop_bias(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
+%     
+    axis([0.5 2.5 0 20]);
+    set(gca,'XTick',1:2,'XTickLabel',{'Cued','Spatial/Feature'},'YTick',0:10:20);
     
-    plot(3,drop_sens(:,ci)+diff(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
-    plot(3,mean(drop_bias(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
-    
-    axis([0.5 3.5 0 20]);
-    set(gca,'XTick',1:3,'XTickLabel',{'Cued','Keep Sensitivity','Keep Bias'},'YTick',0:10:20);
-    
-    drawPublishAxis('figSize=[8.9,4.4]');
+    drawPublishAxis('figSize=[8.9,2.5]');
 end
 
 savepdf(h,fullfile('~/proj/afcom/figures/cued_comparison.pdf'));
@@ -180,52 +218,6 @@ end
 hist(num(2,:)-num(1,:));
 
 %% Add a figure showing how far above the permuted datasets the true datasets are
-
-%% Cross-validated likelihood
-% Let's pull all the CV likelihoods out to compare them, specifically the
-% cross-validated fits for the 4 models
-cv = [];
-for si = 1:length(fits)
-    for ci = 1:2
-        for mi = 3:6
-            cv(si,ci,mi-2) = fits{si}{ci,mi}.cv.likelihood;
-        end
-    end
-end
-
-% now we can check whether the numbers are bigger or smaller. If a model
-% has a *smaller* value, itis a better model
-
-% CV model #:
-%  1         2    3      4
-% all sh   bias sens bias+sens
-
-% we're going to check if 
-
- % critical comparison: if greater than zero, then there is value to using
- % non-shared bias parameters
-temp1 = cv(:,1,1)-cv(:,1,2);
-bootci(10000,@mean,temp1(:))
-% also do a ranksum test
-
-% if > 0, then there is value to using non-shared sensitivity parameters
-temp2 = cv(:,1,1)-cv(:,1,3);
-bootci(10000,@mean,temp2(:))
-
-% if > 0 then there is value to using non-shared parameters
-temp3 = cv(:,1,1)-cv(:,1,4);
-bootci(10000,@mean,temp3(:))
-
-%% One-sensitivity vs shared (i.e. checking whether sensitivity parameters are needed)
-
-% if positive, then there is value to using separate sensitivity parameters
-% (comes out to zero or negative, i.e. overfitting actually)
-for si = 1:length(fits)
-    for ci = 1:2
-        one_sens(si,ci) = fits{si}{ci,7}.cv.likelihood;
-        shared(si,ci) = fits{si}{ci,3}.cv.likelihood;
-    end
-end
 
 %% Signed rank tests for the cross-validated likelihoods
 
@@ -543,6 +535,71 @@ for cond = 1:2
         err_ = err(idxs);
         mu = squeeze(resp_mu(cond,ti,:));
         mu_ = mu(idxs);
+        if any(ti==[2 3])
+            e = errbar(px_+offset(ti),mu_,err_,'-','Color',cmap(ti,:));
+            p(ti) = plot(px_+offset(ti),mu_,'o','MarkerFaceColor',cmap(ti,:),'MarkerEdgeColor','w','MarkerSize',3);
+        end
+        a = axis;
+        axis([0 1 0 0.4]);
+        set(gca,'XTick',[0 0.5 1],'YTick',[0 0.25]);
+        if tt==4
+            xlabel('Normalized psychphysical distance (a.u.)');
+            ylabel('Response likelihood (pdf)');
+        end
+        
+    end
+%     legend(p,titles);
+    drawPublishAxis('figSize=[4.4,8.9]'); 
+    savepdf(h,fullfile('~/proj/afcom/figures',sprintf('report%s_avg_model_fit.pdf',reportType{cond})));
+end
+
+
+%% Average and plot -- uncued version (no spatial/feature)
+cmap = colorblindmap/255;
+
+cmap(4,:) = [0.5 0.5 0.5];
+
+% use model #3 the shared fit
+
+resp_use(:,:,1,:) = resp(:,:,1,1,:);
+resp_use(:,:,2,:) = resp(:,:,3,2,:);
+resp_use(:,:,3,:) = resp(:,:,4,3,:);
+resp_use(:,:,4,:) = resp(:,:,2,5,:);
+
+model_use(:,:,1,:) = model(:,:,1,1,:);
+model_use(:,:,2,:) = model(:,:,3,2,:);
+model_use(:,:,3,:) = model(:,:,4,3,:);
+model_use(:,:,4,:) = model(:,:,2,5,:);
+
+resp_mu = squeeze(nanmean(resp_use));
+model_mu = squeeze(nanmean(model_use));
+
+resp_ci = bootci(1000,@nanmean,resp_use);
+model_ci = bootci(1000,@nanmean,model_use);
+
+idxs = [1:12 14 16 20 24 32];
+
+px = pscale(xs);
+
+pos = [1 2 3 4];
+offset = [0 -.01 .01 0];
+tts = {0 1 2 4};
+titles = {'Uncued','No-distractor'};
+for cond = 1:2
+    h = figure; hold on
+    clear p
+    for ti = [1 4]
+        tt = tts{ti};
+        clear mmu mmu_ err err_ mu mu_
+%         subplot(max(pos),1,pos(ti)); hold on
+        px_ = px(idxs);
+        mmu = squeeze(model_mu(cond,ti,:));
+        mmu_ = mmu(idxs);
+        plot(px_+offset(ti),mmu_,'-','Color',cmap(ti,:));
+        err = squeeze(resp_ci(2,1,cond,ti,:))-squeeze(resp_mu(cond,ti,:));
+        err_ = err(idxs);
+        mu = squeeze(resp_mu(cond,ti,:));
+        mu_ = mu(idxs);
         e = errbar(px_+offset(ti),mu_,err_,'-','Color',cmap(ti,:));
         p(ti) = plot(px_+offset(ti),mu_,'o','MarkerFaceColor',cmap(ti,:),'MarkerEdgeColor','w','MarkerSize',3);
         a = axis;
@@ -555,8 +612,8 @@ for cond = 1:2
         
     end
     legend(p,titles);
-    drawPublishAxis('figSize=[4.4,8.9]'); 
-%     savepdf(h,fullfile('~/proj/afcom/figures',sprintf('report%s_avg_model_fit.pdf',reportType{cond})));
+    drawPublishAxis('figSize=[4.4,2.5]'); 
+    savepdf(h,fullfile('~/proj/afcom/figures',sprintf('report%s_avg_uncued.pdf',reportType{cond})));
 end
 
 %% Plot response distributions separately for each participant
@@ -878,6 +935,19 @@ bias_data(:,:,4,1) = tt_sf(:,:,2,2);
 bias_data(:,:,4,2) = ts_sf(:,:,2,2);
 bias_data(:,:,4,3) = tf_sf(:,:,2,2);
 bias_data(:,:,4,4) = ti_sf(:,:,2,2);
+
+%% Forget about plots, just do text:
+% uncued (cue 4)
+% shared
+% spatial (from full model)
+% feature (from full model)
+% no-distractor (all)
+% columns are: subj | cond | model | bias parameter
+
+% drop the models we don't need 
+bias_data = bias_data(:,:,[1 2],:);
+bias_data_ = squeeze(mean(bias_data));
+bias_data_ci = bootci(1000,@nanmean,bias_data);
 
 %% Plot (lots of subpanels)
 

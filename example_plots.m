@@ -63,7 +63,7 @@ savepdf(h,fullfile('~/proj/afcom/figures/colorchannels.pdf'));
 %% Now plot the individual 
 % channel responses for each of the four different dot patches, showing how
 % the channels responded +/- 1 sigma noise
-dps = [2 1 0.5 0.5];
+dps = [1 1 1 1];
 
 targets = [3/4*pi 3/2*pi 1/4*pi 5/4*pi]-pi/2;
 
@@ -79,6 +79,8 @@ for di = 1:length(dps)
         errbar(angles(ai),activations(ai),1,'-','Color',rgb(ai,:));
         plot(angles(ai),activations(ai),'o','MarkerFaceColor',rgb(ai,:),'MarkerEdgeColor','w','MarkerSize',4);
 %         plot(angles(ai),randn+activations(ai),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',3);
+        plot(angles(ai),randn+activations(ai),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',3);
+
     end
 
 	
@@ -95,7 +97,7 @@ savepdf(h,fullfile('~/proj/afcom/figures/coloractivations.pdf'));
 %% Now plot the individual 
 % channel responses for each of the four different dot patches, showing how
 % the channels responded +/- 1 sigma noise
-dps = [2 1 0.5 0.5];
+dps = [1 1 1 1];
 
 targets = [3/4*pi 3/2*pi 1/4*pi 5/4*pi]-pi/2;
 
@@ -186,69 +188,3 @@ drawPublishAxis('figSize=[3,2]');
 
 savepdf(h,fullfile('~/proj/afcom/figures/color_finallike.pdf'));
 %% OLD CODE OLD CODE
-
-%% example plot with different sensitivity (left panel scaled, right panel normalized)
-x = -pi:pi/128:pi;
-
-h = figure(2); clf; hold on
-
-% cmap = colorblindmap/255;
-
-cmap = brewermap(13,'Reds');
-
-ax = pi*0.75;
-ay = 0.4;
-d = 0.5;
-
-subplot(121); hold on
-% compute the pscale function for four different angs
-dprimes = logspace(-1,0.5,6);
-dprimes = fliplr(dprimes);
-legs = {};
-for di = 1:length(dprimes)
-    dprime = dprimes(di);
-    
-    activation = dprime*(1-pscale(abs(x)*180/pi));
-    
-    plot(x,activation,'-','Color',cmap(14-di,:));
-    legs{end+1} = sprintf('d'' %1.2f',dprime);
-end
-legend(legs);
-
-
-ylabel('Channel activation (sigma=1)');
-xlabel('Distance from presented stimulus (deg)');
-axis([-pi pi 0 3.2]);
-set(gca,'XTick',[-pi 0 pi],'XTickLabel',[-180 0 180]);
-set(gca,'YTick',[0 3.2]);
-drawPublishAxis('figSize=[4.5,4.5]','poster=0');
-
-subplot(122); hold on
-% compute the pscale function for four different angs
-dprimes = logspace(-1,0.5,6);
-dprimes = fliplr(dprimes);
-legs = {};
-for di = 1:length(dprimes)
-    dprime = dprimes(di);
-    
-    activation = computeTCCPDF(x,dprime);
-    plot(x,activation,'-','Color',cmap(14-di,:));
-    legs{end+1} = sprintf('d'' %1.2f',dprime);
-end
-
-ylabel('Response likelihood (pdf)');
-xlabel('Distance from presented stimulus (deg)');
-axis([-pi pi 0 0.08]);
-set(gca,'XTick',[-pi 0 pi],'XTickLabel',[-180 0 180]);
-set(gca,'YTick',[0 0.08]);
-drawPublishAxis('figSize=[4.5,4.5]','poster=0');
-
-savepdf(h,fullfile('~/proj/afcom/figures/','sensitivity_example.pdf'));
-
-%%
-x = -pi:pi/64:pi;
-% also plot for these dprime values the tcc_data plots
-for di = 1:length(dprimes)
-    like = computeTCCPDF(x,dprimes(di));
-    plot_tcc_data(x,like*4,cmap(14-di,:),sprintf('tcc_circle_%i.pdf',di));
-end
