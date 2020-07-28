@@ -272,6 +272,12 @@ for tt = 1:length(fixedParams.trialTypes)
 
     % rotate all the angles relative to the response angle 
     angles = angdist(repmat(tdata(:,12),1,4),angles);
+    warning('THIS CODE IS BROKEN');
+    warning('THIS CODE IS BROKEN');
+    warning('THIS CODE IS BROKEN');
+    warning('THIS CODE IS BROKEN');
+    warning('THIS CODE IS BROKEN');
+    warning('THIS CODE IS BROKEN');
 
     % get the parameters for this trialtype
     if fixedParams.one_sensitivity && fixedParams.shared_sensitivity

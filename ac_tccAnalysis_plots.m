@@ -80,10 +80,13 @@ end
 idxs = incl;
 % check if all cued is useful
 diff = likes(idxs,:,1)-likes(idxs,:,4); % bigger numbers = separating parameters for cued conditions is a better model
+mean(diff)
 bootci(1000,@mean,diff)
 drop_bias = likes(idxs,:,1)-likes(idxs,:,2);  % bigger numbers = separating cued sensitivity is a better model
+mean(drop_bias)
 bootci(1000,@mean,drop_bias)
 drop_sens = likes(idxs,:,1)-likes(idxs,:,3);  % bigger numbers = separating cued bias is a better model
+mean(drop_sens)
 bootci(1000,@mean,drop_sens)
 
 

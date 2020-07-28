@@ -101,6 +101,47 @@ for si = 1:length(subjects)
     end
 end
 
+%% Do an all subject fit
+di = 1;
+allinfos = {};
+for ci = 1:2
+    data = sel(alldata,3,cues(ci));
+    data = fil(data,4,'>=',mindurs(di));
+    data = fil(data,4,'<=',maxdurs(di));
+    for li = 1:length(calls)
+        info = struct;
+        info.data = data;
+        info.call = calls{li};
+        info.ci = ci;
+        info.subj = inf;
+        info.dataType = sprintf('hard report %s',reportType{ci});
+        allinfos{end+1} = info;
+    end
+end
+for ii = 1:length(allinfos)
+    disp(allinfos{ii}.call);
+    allinfos{ii}.fit = ac_fitTCCModel(allinfos{ii}.data,allinfos{ii}.call);
+    allinfos{ii}.fit.call = allinfos{ii}.call;
+    allinfos{ii}.fit.dataType = allinfos{ii}.dataType;
+end
+save(fullfile('~/proj/afcom/tcc_all_sens.mat'),'allinfos');
+
+%% nocv!
+
+load(fullfile('~/proj/afcom/tcc_all_sens.mat'));
+for ii = 1:length(allinfos)
+    allinfos{ii}.call = strcat(allinfos{ii}.call,',nocv');
+end
+%% Now attempt to fit the "corrected" model
+
+parfor ii = 1:4%length(allinfos)
+    disp(allinfos{ii}.call);
+    allinfos{ii}.cfit = ac_fitTCCModel_corrected(allinfos{ii}.data,allinfos{ii}.call);
+    allinfos{ii}.cfit.call = allinfos{ii}.call;
+    allinfos{ii}.cfit.dataType = allinfos{ii}.dataType;
+end
+save(fullfile('~/proj/afcom/tcc_all_sens_corrected.mat'),'allinfos');
+
 %% Do all the fits
 disp(sprintf('Running fits for %i runs',length(infos)));
 % sort by the number of trials in each one
