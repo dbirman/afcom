@@ -103,7 +103,7 @@ if ~isempty(strfind(mode,'sh_sens'))
     % sensitivity parameter shared for all conditions
     fixedParams.shared_sensitivity = true;
     fixedParams.one_sensitivity = false;
-    params.dt_sh = [2 0.01 15 0.75 4];
+    params.dt_sh = [1.5 0.01 10 0.75 3];
 else
     fixedParams.shared_sensitivity = false;
     fixedParams.one_sensitivity = false;
@@ -112,40 +112,40 @@ else
         fixedParams.cued_sensitivity = true;
         % we need two sets of parameters, one for uncued and one for cued
         % (shared across both cue types)
-        params.dt_1 = [2 0.01 10 0.75 4];
+        params.dt_1 = [1.5 0.01 10 0.75 3];
         % these will be split into dx_2 and dx_3 inside the function
-        params.dt_cu = [2 0.01 10 0.75 4];
+        params.dt_cu = [1.5 0.01 10 0.75 3];
     else
         % separate sensitivity parameters for *all* conditions
         fixedParams.cued_sensitivity = false;
         for tt = 1:length(fixedParams.trialTypes)
-            params.(sprintf('dt_%i',tt)) = [2 0.01 15 0.75 4];
+            params.(sprintf('dt_%i',tt)) = [1.5 0.01 10 0.75 3];
         end
     end
 end
 
 if ~isempty(strfind(mode,'sh_bias'))
     fixedParams.shared_bias = true;
-    params.bs_sh = [0.5 0 1 0 1];
-    params.bf_sh = [0.5 0 1 0 1];
-    params.bi_sh = [0.25 0 1 0 0.5];
+    params.bs_sh = [1 0.01 10 0.25 3];
+    params.bf_sh = [1 0.01 10 0.25 3];
+    params.bi_sh = [0.5 0 10 0.25 3];
 else
     fixedParams.shared_bias = false;
     if ~isempty(strfind(mode,'cued_bias'))
         fixedParams.cued_bias = true;
-        params.bs_1 = [0.5 0 1 0 1];
-        params.bf_1 = [0.5 0 1 0 1];
-        params.bi_1 = [0.25 0 1 0 0.5];
+        params.bs_1 = [1 0.01 10 0.25 3];
+        params.bf_1 = [1 0.01 10 0.25 3];
+        params.bi_1 = [0.5 0.01 10 0.25 3];
         
-        params.bs_cu = [0.5 0 1 0 1];
-        params.bf_cu = [0.5 0 1 0 1];
-        params.bi_cu = [0.25 0 1 0 0.5];
+        params.bs_cu = [1 0.01 10 0.25 3];
+        params.bf_cu = [1 0.01 10 0.25 3];
+        params.bi_cu = [0.5 0.01 10 0.25 3];
     else
         fixedParams.cued_bias = false;
         for tt = 1:length(fixedParams.trialTypes)
-            params.(sprintf('bs_%i',tt)) = [0.5 0 1 0 1];
-            params.(sprintf('bf_%i',tt)) = [0.5 0 1 0 1];
-            params.(sprintf('bi_%i',tt)) = [0.25 0 1 0 0.5];
+            params.(sprintf('bs_%i',tt)) = [0.5 0 10 0 3];
+            params.(sprintf('bf_%i',tt)) = [0.5 0 10 0 3];
+            params.(sprintf('bi_%i',tt)) = [0.25 0 10 0 3];
         end
     end
 end
@@ -164,7 +164,7 @@ if strfind(mode,'bads')
     warning('Tolerance size is large and maxfunevals is tiny: reduce for main fits');
 %     options.TolMesh = 0.001;
     options.TolMesh = 1;
-    options.MaxFunEvals = 200;
+    options.MaxFunEvals = 50;
     
     bestparams = bads(@(p) vmlike(p,adata,0),ip,minp,maxp,plb,pub,[],options);
 
@@ -314,7 +314,7 @@ for tt = 1:length(fixedParams.trialTypes)
     
     %%
     % get the weights organized
-    weights = [dt dt*bs dt*bf dt*bi]';
+    weights = [dt bs bf bi]';
     
     % pre-computed the repmat
     channelCentersRep = repmat(channelCenters',1,4);
@@ -343,8 +343,21 @@ for tt = 1:length(fixedParams.trialTypes)
         % now compute the probability by taking the prod across channels
         % for allcdf and multiplying by the channel0pdf values
         trial_likelihoods(ai) = channel0pdf * prod(allcdf,2);
+        
+        % test code: compute and plot the full likelihood
+%         clear fulllike
+%         for chan = 1:length(cResp)
+%             channelpdf = normpdf(rrange,cResp(chan),1)*dr;
+%             allcdf = normcdf(repmat(rrangec,1,N-1),repmat(cResp(setdiff(1:N,chan))',rL,1),1)*dr;
+%             fulllike(chan) = channelpdf * prod(allcdf,2);
+%         end
+%         figure;
+%         subplot(211);
+%         plot(cResp);
+%         subplot(212);
+%         plot(fulllike);
     end
-    
+    %%
     probs(idxs) = trial_likelihoods;
 
     if any(trial_likelihoods==0)

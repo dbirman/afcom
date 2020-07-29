@@ -134,7 +134,7 @@ for ii = 1:length(allinfos)
 end
 %% Now attempt to fit the "corrected" model
 
-parfor ii = 1:4%length(allinfos)
+for ii = 1:4%length(allinfos)
     disp(allinfos{ii}.call);
     allinfos{ii}.cfit = ac_fitTCCModel_corrected(allinfos{ii}.data,allinfos{ii}.call);
     allinfos{ii}.cfit.call = allinfos{ii}.call;
