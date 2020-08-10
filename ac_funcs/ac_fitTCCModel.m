@@ -176,9 +176,9 @@ if strfind(mode,'bads')
 % FMINCON VERSION
 else
     warning('Tolerance size is large: reduce for main fits');
-    options = optimoptions('fmincon','Algorithm','active-set','TolFun',5,'TolCon',1,'Display','off'); % set a limit or it goes on foreeeeeeeeeeeever
+%     options = optimoptions('fmincon','Algorithm','active-set','TolFun',5,'TolCon',1,'Display','off'); % set a limit or it goes on foreeeeeeeeeeeever
 
-    bestparams = fmincon(@(p) vmlike(p,adata,0),ip,[],[],[],[],minp,maxp,[],options);
+    bestparams = fmincon(@(p) vmlike(p,adata,0),ip,[],[],[],[],minp,maxp,[]);%,options);
 end
 
 [~,fit] = vmlike(bestparams,adata,1);
@@ -216,13 +216,6 @@ params = getParams(params);
 %     'respDistance'    'distDistance'
 % 
 
-% get the predicted likelihood for each response relative to the target
-% angle
-probs = nan(size(adata,1),1);
-count = 1;
-
-% setup lapse probability distribution
-lapseProb = vonMises(0,0,0);
 
 % setup probabilities list
 probs = zeros(size(adata,1),1);
@@ -249,7 +242,7 @@ probs = zeros(size(adata,1),1);
 % legend(legs);
 
 %% Compute for each dprime parameter the likelihood functions
-xs = 0:pi/128:pi;
+xs = -pi:pi/256:pi;
 for tt = 1:length(fixedParams.trialTypes)
     
     idxs = adata(:,2)==fixedParams.trialTypeVals(tt);
@@ -266,18 +259,15 @@ for tt = 1:length(fixedParams.trialTypes)
     angles = zeros(size(tdata,1),4);
     for ti = 1:size(tdata,1)
         trial = tdata(ti,:);
-        target = trial(1);
-        angles(ti,:) = trial(angleOpts(target,:));
+        angles(ti,:) = trial(angleOpts(trial(1),:));
     end
 
     % rotate all the angles relative to the response angle 
-    angles = angdist(repmat(tdata(:,12),1,4),angles);
-    warning('THIS CODE IS BROKEN');
-    warning('THIS CODE IS BROKEN');
-    warning('THIS CODE IS BROKEN');
-    warning('THIS CODE IS BROKEN');
-    warning('THIS CODE IS BROKEN');
-    warning('THIS CODE IS BROKEN');
+    rt = repmat(tdata(:,12),1,4);
+    angles = sign(angles-rt).*angdist(rt,angles);
+    
+    % is that right? or should it be:
+%     angles = mod(angles-repmat(tdata(:,12),1,4),2*pi);
 
     % get the parameters for this trialtype
     if fixedParams.one_sensitivity && fixedParams.shared_sensitivity
@@ -312,17 +302,17 @@ for tt = 1:length(fixedParams.trialTypes)
     end
     
     liket = preComputeTCCPDF(xs,dt);
-    likes = preComputeTCCPDF(xs,ds);
-    likef = preComputeTCCPDF(xs,df);
-    likei = preComputeTCCPDF(xs,di);
+%     likes = preComputeTCCPDF(xs,ds);
+%     likef = preComputeTCCPDF(xs,df);
+%     likei = preComputeTCCPDF(xs,di);
 
     like = zeros(size(angles));
     % compute the probability that the response angle was pulled from this
     % distribution
     like(:,1) = interp1(xs,liket,angles(:,1),'linear');
-    like(:,2) = interp1(xs,likes,angles(:,2),'linear');
-    like(:,3) = interp1(xs,likef,angles(:,3),'linear');
-    like(:,4) = interp1(xs,likei,angles(:,4),'linear');
+    like(:,2) = interp1(xs,liket,angles(:,2),'linear');
+    like(:,3) = interp1(xs,liket,angles(:,3),'linear');
+    like(:,4) = interp1(xs,liket,angles(:,4),'linear');
 
     % weight the likelihoods by the beta values
     if fixedParams.shared_bias

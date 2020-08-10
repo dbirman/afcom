@@ -134,13 +134,13 @@ for ii = 1:length(allinfos)
 end
 %% Now attempt to fit the "corrected" model
 
-for ii = 1:4%length(allinfos)
-    disp(allinfos{ii}.call);
-    allinfos{ii}.cfit = ac_fitTCCModel_corrected(allinfos{ii}.data,allinfos{ii}.call);
-    allinfos{ii}.cfit.call = allinfos{ii}.call;
-    allinfos{ii}.cfit.dataType = allinfos{ii}.dataType;
-end
-save(fullfile('~/proj/afcom/tcc_all_sens_corrected.mat'),'allinfos');
+% parfor ii = 1:4%length(allinfos)
+%     disp(allinfos{ii}.call);
+%     allinfos{ii}.cfit = ac_fitTCCModel_corrected(allinfos{ii}.data,allinfos{ii}.call);
+%     allinfos{ii}.cfit.call = allinfos{ii}.call;
+%     allinfos{ii}.cfit.dataType = allinfos{ii}.dataType;
+% end
+% save(fullfile('~/proj/afcom/tcc_all_sens_corrected.mat'),'allinfos');
 
 %% Do all the fits
 disp(sprintf('Running fits for %i runs',length(infos)));
@@ -189,62 +189,6 @@ end
 
 save(fullfile('~/proj/afcom/tcc_data.mat'),'fits','cued_fits');
 
-
-%% OLD OLD OLD OLD
-
+%% Model recovery code
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%% Sort all the fits
-
-fits = {};
-for si = [-1 1:length(subjects)]
-    fit = {};
-    for ci = 1:length(cues)
-        for di = 1:length(mindurs)
-            for ii = 1:length(infos)
-                if infos{ii}.ci==ci && infos{ii}.di==di && infos{ii}.subj==si
-                    % this is a fit that was done for this subject, for
-                    % this condition, for this difficulty level
-                    
-                    % now we have to sort by the call, first pull out the
-                    % baseline and cue4 fits
-                    if ~isempty(strfind(infos{ii}.fit.call,'all'))
-                        fit{ci,1} = infos{ii}.fit; % cue 4
-                    elseif ~isempty(strfind(infos{ii}.fit.call,'baseline'))
-                        fit{ci,2} = infos{ii}.fit; % baseline
-                    elseif ~isempty(strfind(infos{ii}.fit.call,'sh_sens,sh_bias'))
-                        fit{ci,3} = infos{ii}.fit; % shared model
-                    elseif ~isempty(strfind(infos{ii}.fit.call,'sh_sens')) && isempty(strfind(infos{ii}.fit.call,'sh_bias'))
-                        fit{ci,4} = infos{ii}.fit; % shared sensitivity
-                    elseif ~isempty(strfind(infos{ii}.fit.call,'sh_bias')) && isempty(strfind(infos{ii}.fit.call,'sh_sens'))
-                        fit{ci,5} = infos{ii}.fit; % shared bias
-                    elseif ~isempty(strfind(infos{ii}.fit.call,'spatial,feature')) && isempty(strfind(infos{ii}.fit.call,'sh_bias')) && isempty(strfind(infos{ii}.fit.call,'sh_sens'))
-                        fit{ci,6} = infos{ii}.fit; % no shared parameters
-                    end
-                end
-            end
-        end
-    end
-    if si>-1
-        fits{si} = fit;
-    end
-end
-
-%% Save the fits
-
-% over-write with cross-validated fits
-save(fullfile('~/proj/afcom/tcc_data.mat'),'fits');

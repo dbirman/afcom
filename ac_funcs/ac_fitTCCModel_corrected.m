@@ -164,7 +164,7 @@ if strfind(mode,'bads')
     warning('Tolerance size is large and maxfunevals is tiny: reduce for main fits');
 %     options.TolMesh = 0.001;
     options.TolMesh = 1;
-    options.MaxFunEvals = 50;
+    options.MaxFunEvals = 5;
     
     bestparams = bads(@(p) vmlike(p,adata,0),ip,minp,maxp,plb,pub,[],options);
 
@@ -339,7 +339,7 @@ for tt = 1:length(fixedParams.trialTypes)
         % get the probability range
         channel0pdf = normpdf(rrange,cResp(1),1)*dr;
         % compute the normcdf for all the other channels   
-        allcdf = normcdf(repmat(rrangec,1,N-1),repmat(cResp(2:end)',rL,1),1)*dr;
+        allcdf = normcdf(repmat(rrangec,1,N-1),repmat(cResp(2:end)',rL,1),1);
         % now compute the probability by taking the prod across channels
         % for allcdf and multiplying by the channel0pdf values
         trial_likelihoods(ai) = channel0pdf * prod(allcdf,2);
@@ -348,7 +348,7 @@ for tt = 1:length(fixedParams.trialTypes)
 %         clear fulllike
 %         for chan = 1:length(cResp)
 %             channelpdf = normpdf(rrange,cResp(chan),1)*dr;
-%             allcdf = normcdf(repmat(rrangec,1,N-1),repmat(cResp(setdiff(1:N,chan))',rL,1),1)*dr;
+%             allcdf = normcdf(repmat(rrangec,1,N-1),repmat(cResp(setdiff(1:N,chan))',rL,1),1);
 %             fulllike(chan) = channelpdf * prod(allcdf,2);
 %         end
 %         figure;
@@ -356,6 +356,12 @@ for tt = 1:length(fixedParams.trialTypes)
 %         plot(cResp);
 %         subplot(212);
 %         plot(fulllike);
+        
+        % TODO:
+        % Note to self: the fulllike should be = 1, if it's computed the
+        % same way as in computeTCCPDF. There must be an error somewhere
+        % that's causing it to evaluate to the wrong value. Find that error
+        % and then that should fix the issues w/ the code. 
     end
     %%
     probs(idxs) = trial_likelihoods;
@@ -387,9 +393,33 @@ fit.params = params;
 
 if computeOutput
     disp('todo');
-    % compute the model output for this set of parameters, e.g. the 
-%     fit.outs = outs;
-%     fit.out = out;
+    % compute the model output for this set of parameters. For this model
+    % we'll build the full likelihood distribution for all trials, then
+    % these can be averaged together to make a plot for the response
+    % likelihood compared to the true response direction.
+    
+    for ai = 1:size(angles)
+        cResp = (1-pscale_noconvert(angdist(channelCentersRep,repmat(angles(ai,:),100,1))*180/pi))*weights;
+
+        clear fulllike
+        for chan = 1:length(cResp)
+            channelpdf = normpdf(rrange,cResp(chan),1)*dr;
+            allcdf = normcdf(repmat(rrangec,1,N-1),repmat(cResp(setdiff(1:N,chan))',rL,1),1);
+            fulllike(chan) = channelpdf * prod(allcdf,2);
+        end
+        
+%         fit.resplike(ai,:) = 
+%         figure;
+%         subplot(211);
+%         plot(cResp);
+%         subplot(212);
+%         plot(fulllike);
+        
+    end
+    
+    
+    fit.outs = outs;
+    fit.out = out;
 end
 
 %% Helper routines
