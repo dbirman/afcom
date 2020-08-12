@@ -155,3 +155,20 @@ for di = 1:length(fit)
     disp(sprintf('%1.2f %1.2f %1.2f %1.2f',round(betas*100)/100));
 %     disp(round(betas))
 end
+
+%% 
+load(fullfile('~/proj/afcom/beta_recovery.mat'));
+clear betas
+for i = 1:600
+    p = fit{i}.params;
+    betas(i,:) = [p.bs_sh*p.bf_sh p.bs_sh*(1-p.bf_sh) (1-p.bs_sh)*(1-p.bi_sh) (1-p.bs_sh)*p.bi_sh];
+end
+
+clear mu ci
+for g = 1:6
+    cbetas = betas(((g-1)*100+1):g*100,:);
+    mu(g,:) = mean(cbetas);
+    ci(g,:,:) = bootci(1000,@nanmean,cbetas);
+end
+
+%% Figure
