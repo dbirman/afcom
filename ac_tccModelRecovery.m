@@ -47,7 +47,7 @@ for dpinc = [repmat(0.1,1,100) repmat(0.25,1,100) repmat(0.5,1,100) repmat(1,1,1
         adata(n,:) = [1 0 nan 1 0 pi nan pi offAngles resp nan nan nan nan];
     end
     
-    for n = 1:1000
+    for n = 1:700
         % cued trials (tt==2)
         offAngles = rand(1,3)*2*pi;
         
@@ -78,6 +78,40 @@ end
 
 save(fullfile('~/proj/afcom/dprime_recovery.mat'),'dataset','fit');
 
+%% Figures
+load(fullfile('~/proj/afcom/dprime_recovery.mat'));
+
+exp = [repmat(0.1,1,100) repmat(0.25,1,100) repmat(0.5,1,100) repmat(1,1,100)];
+for fi = 1:400
+    p = fit{fi}.params;
+    
+    db(fi) = p.dt_1;
+    dc(fi) = p.dt_cu;
+end
+
+%% Figure 1
+exp = 1+[0.1 0.25 0.5 1];
+clear mu ci
+for i = 1:4
+    vals = dc((((i-1)*100)+1):((i-1)*100+100));
+    mu(i) = mean(vals);
+    ci(i) = 1.96*std(vals);
+end
+
+h = figure; hold on
+errbar(exp,mu,ci,'-k');
+plot(exp,mu,'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',5);
+axis([1 2 1 2]);
+plot([1 2],[1 2],'--k');
+set(gca,'XTick',[1 2],'YTick',[1 2]);
+xlabel('Simulated d');
+ylabel('Fitted d');
+
+drawPublishAxis('figSize=[4.5, 2.5]');
+
+savepdf(h,fullfile('~/proj/afcom/figures/model_recovery_d.pdf'));
+
+%% Plot expected vs actual
 
 %% Pure beta test
 % That first test worked! So now let's adjust the beta values without
@@ -108,7 +142,7 @@ for bi = 1:size(betas,1)
     
     adata = nan(1000,16);
     
-    for n = 1:1000
+    for n = 1:700
         % uncued trials (tt==1)
         offAngles = rand(1,3)*2*pi;
         
@@ -168,7 +202,82 @@ clear mu ci
 for g = 1:6
     cbetas = betas(((g-1)*100+1):g*100,:);
     mu(g,:) = mean(cbetas);
-    ci(g,:,:) = bootci(1000,@nanmean,cbetas);
+    ci(g,:) = std(cbetas);
+%     ci(g,:,:) = bootci(1000,@nanmean,cbetas);
+end
+
+%% Display the probability of recovering different values 
+% rng = squeeze(ci(:,2,:))-mu;
+rng = ci;
+h = figure; hold on
+plot([0 1],[0 1],'--k');
+errbar(betas_(:),mu(:),rng(:),'-k');
+plot(betas_(:),mu(:),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',5);
+
+set(gca,'XTick',[0 1],'YTick',[0 1]);
+xlabel('Simulated parameter value');
+ylabel('Fitted value');
+drawPublishAxis('figSize=[4.5,2.5]');
+savepdf(h,fullfile('~/proj/afcom/figures/model_recovery_beta.pdf'));
+%% Figure
+
+h = figure(1); clf
+for i = 1:6
+    subplot(6,1,i); hold on
+    
+    plot(1:4,betas_(i,:),'--r');
+    errbar(1:4,mu(i,:),rng(i,:),'-','Color','k');
+    plot(1:4,mu(i,:),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',5);
+    
+    set(gca,'XTick',1:4,'XTickLabel',{'Target','Side','Feature','Distractor'});
+    set(gca,'YTick',[0 1]);
+    axis([1 4 0 1]);
+    drawPublishAxis('figSize=[4.5,6.5]');
+end
+
+savepdf(h,fullfile('~/proj/afcom/figures/model_recovery_varbeta.pdf'));
+
+%% Do some statistics
+
+
+%% Weird drop in d' tests
+
+clear fit 
+
+basedp = 1;
+
+dataset = {};
+
+x = -pi:pi/128:pi;
+baseLike = computeTCCPDF(x,basedp);
+
+betas = [1 0 0 0];
+
+clear adatas
+for rep = 1:100
+    adata = nan(10,16);
+
+    for n = 1:10
+        % uncued trials (tt==1)
+
+        finalLike = cumsum(baseLike);
+        finalLike = finalLike./max(finalLike); % normalize in case the likelihood is messed up
+
+        resp = x(find(finalLike>=rand,1))+pi;
+
+        adata(n,:) = [1 0 nan 1 0 pi nan pi offAngles resp nan nan nan nan];
+    end
+    
+    adatas{rep} = adata;
+end
+
+parfor rep = 1:100
+    fit{rep} = ac_fitTCCModel(adatas{rep},'bads,all,spatial,feature,cued_sens,sh_bias,nocv');
 end
 
 %% Figure
+clear d
+for rep = 1:100
+    p = fit{rep}.params;
+    d(rep) = p.dt_1;
+end
