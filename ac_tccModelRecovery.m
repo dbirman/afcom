@@ -94,8 +94,14 @@ exp = 1+[0.1 0.25 0.5 1];
 clear mu ci
 for i = 1:4
     vals = dc((((i-1)*100)+1):((i-1)*100+100));
-    mu(i) = mean(vals);
-    ci(i) = 1.96*std(vals);
+    clear mu_
+    for r = 1:1000
+        % sample 7 random samples
+        sample = randsample(vals,7);
+        mu_(r) = mean(sample);
+    end
+    mu(i) = mean(mu_);
+    ci(i) = std(mu_);
 end
 
 h = figure; hold on
@@ -201,13 +207,18 @@ end
 clear mu ci
 for g = 1:6
     cbetas = betas(((g-1)*100+1):g*100,:);
-    mu(g,:) = mean(cbetas);
-    ci(g,:) = std(cbetas);
-%     ci(g,:,:) = bootci(1000,@nanmean,cbetas);
+    clear mu_
+    for bi = 1:4
+        for r = 1:1000
+            sample = randsample(cbetas(:,bi),7);
+            mu_(r) = mean(sample);
+        end
+        mu(g,bi) = mean(mu_);
+        ci(g,bi) = std(mu_);
+    end
 end
 
 %% Display the probability of recovering different values 
-% rng = squeeze(ci(:,2,:))-mu;
 rng = ci;
 h = figure; hold on
 plot([0 1],[0 1],'--k');
@@ -232,7 +243,7 @@ for i = 1:6
     set(gca,'XTick',1:4,'XTickLabel',{'Target','Side','Feature','Distractor'});
     set(gca,'YTick',[0 1]);
     axis([1 4 0 1]);
-    drawPublishAxis('figSize=[4.5,6.5]');
+    drawPublishAxis('figSize=[4.5,8.9]');
 end
 
 savepdf(h,fullfile('~/proj/afcom/figures/model_recovery_varbeta.pdf'));
