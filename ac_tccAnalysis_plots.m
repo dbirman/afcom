@@ -89,6 +89,73 @@ drop_sens = likes(idxs,:,1)-likes(idxs,:,3);  % bigger numbers = separating cued
 mean(drop_sens)
 bootci(1000,@mean,drop_sens)
 
+%% Do the beta values
+% Just pull the shared and cued models 
+% shared = 1 (position 1)
+% cued = 4 (uncued position 2, cued position 3)
+betas = nan(8,2,3,4);
+
+for si = 1:length(cued_fits)
+    for ci = 1:2
+        p = cued_fits{si}{ci,1}.params;
+            
+        betas(si,ci,1,:) = [p.bs_sh*p.bf_sh p.bs_sh*(1-p.bf_sh) (1-p.bs_sh)*(1-p.bi_sh) (1-p.bs_sh)*p.bi_sh];
+        
+        p = cued_fits{si}{ci,4}.params;
+        betas(si,ci,2,:) = [p.bs_1*p.bf_1 p.bs_1*(1-p.bf_1) (1-p.bs_1)*(1-p.bi_1) (1-p.bs_1)*p.bi_1];
+        
+        betas(si,ci,3,:) = [p.bs_cu*p.bf_cu p.bs_cu*(1-p.bf_cu) (1-p.bs_cu)*(1-p.bi_cu) (1-p.bs_cu)*p.bi_cu];
+        
+    end
+end
+% TODO: Print out the values of uncued + cued, and then run our model on
+% them to figure out what the power would have been for various effect
+% sizes (interpolate the distance or something?) 
+
+% print out the uncued
+% betas_ = squeeze(mean(betas));
+% betas_ci = squeeze(bootci(1000,@mean,betas));
+% disp('Uncued, report direct');
+% for bi = 1:4
+%     disp(sprintf('%2.0f%% [%2.0f, %2.0f]',betas_(1,2,bi)*100,betas_ci(1,1,2,bi)*100,100*betas_ci(2,1,2,bi)));
+% %     disp(squeeze(betas_(1,2,:)));
+% end
+% disp('Cued, report direct');
+% for bi = 1:4
+%     disp(sprintf('%2.0f%% [%2.0f, %2.0f]',betas_(1,3,bi)*100,betas_ci(1,1,3,bi)*100,100*betas_ci(2,1,3,bi)));
+% %     disp(squeeze(betas_(1,2,:)));
+% end
+
+% get the differences
+disp('Diff, report direct');
+dbetas = betas(:,1,3,:) - betas(:,1,2,:);
+dbetas_ = squeeze(mean(dbetas));
+dbetas_ci = squeeze(bootci(1000,@mean,dbetas));
+for bi = 1:4
+    disp(sprintf('%2.0f%% [%2.0f, %2.0f]',dbetas_(bi)*100,dbetas_ci(1,bi)*100,100*dbetas_ci(2,bi)));
+end
+
+disp('Diff, report color');
+dbetas = betas(:,2,3,:) - betas(:,2,2,:);
+dbetas_ = squeeze(mean(dbetas));
+dbetas_ci = squeeze(bootci(1000,@mean,dbetas));
+for bi = 1:4
+    disp(sprintf('%2.0f%% [%2.0f, %2.0f]',dbetas_(bi)*100,dbetas_ci(1,bi)*100,100*dbetas_ci(2,bi)));
+end
+
+% disp('Uncued, report color');
+% for bi = 1:4
+%     disp(sprintf('%2.0f%% [%2.0f, %2.0f]',betas_(2,2,bi)*100,betas_ci(1,2,2,bi)*100,100*betas_ci(2,2,2,bi)));
+% end
+% disp('Cued, report color');
+% for bi = 1:4
+%     disp(sprintf('%2.0f%% [%2.0f, %2.0f]',betas_(2,3,bi)*100,betas_ci(1,2,3,bi)*100,100*betas_ci(2,2,3,bi)));
+% end
+
+% average over report
+betas__ = squeeze(mean(betas_));
+disp(betas__(2,:));
+disp(betas__(3,:));
 
 %% Cross-validated likelihood
 % Let's pull all the CV likelihoods out to compare them, specifically the
@@ -125,6 +192,8 @@ bootci(10000,@mean,temp2(:))
 temp3 = cv(incl,:,1)-cv(incl,:,4);
 bootci(10000,@mean,temp3(:))
 
+% but now 
+
 %% Figure showing effect of cueing
 h = figure;
 
@@ -138,6 +207,7 @@ for ci = 1:2
     
     plot(2,temp3(:,ci)+diff(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
     plot(2,mean(temp3(:,ci)+diff(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
+    
 %     plot(2,drop_bias(:,ci)+diff(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
 %     plot(2,mean(drop_bias(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
 %     
@@ -150,7 +220,7 @@ for ci = 1:2
     drawPublishAxis('figSize=[8.9,2.5]');
 end
 
-savepdf(h,fullfile('~/proj/afcom/figures/cued_comparison.pdf'));
+% savepdf(h,fullfile('~/proj/afcom/figures/cued_comparison.pdf'));
 %% Get the permutations and look at their distributions
 perms = nan(8,2,6,100);
 like = nan(8,2,6);
