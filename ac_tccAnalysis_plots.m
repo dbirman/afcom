@@ -221,6 +221,43 @@ for ci = 1:2
 end
 
 % savepdf(h,fullfile('~/proj/afcom/figures/cued_comparison.pdf'));
+
+
+%% Figure showing effect of cueing
+
+% ranksum results
+for ci = 1:2
+    p = ranksum(diff(:,ci),zeros(size(diff(:,ci))));
+    disp(p);
+end
+
+h = figure;
+
+for ci = 1:2
+    subplot(1,2,ci); hold on
+    
+    plot([1 3],[0 0],'--k');
+    
+    plot(3,diff(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
+    plot(3,mean(diff(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
+    
+    plot(4,temp3(:,ci)+diff(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
+    plot(4,mean(temp3(:,ci)+diff(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
+    
+    plot(1,drop_bias(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
+    plot(1,mean(drop_bias(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
+    
+    plot(2,drop_sens(:,ci),'o','MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor','w','MarkerSize',5);
+    plot(2,mean(drop_sens(:,ci)),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',8);
+%     
+    axis([0.5 4.5 0 20]);
+    set(gca,'XTick',1:4,'XTickLabel',{'Separate d','Separate bias','Cued','Spatial/Feature'},'YTick',0:10:20);
+    
+    drawPublishAxis('figSize=[8.9,2.5]');
+end
+
+savepdf(h,fullfile('~/proj/afcom/figures/cued_comparison_4.pdf'));
+
 %% Get the permutations and look at their distributions
 perms = nan(8,2,6,100);
 like = nan(8,2,6);
