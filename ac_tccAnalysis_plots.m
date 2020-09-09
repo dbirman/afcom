@@ -113,18 +113,18 @@ end
 % sizes (interpolate the distance or something?) 
 
 % print out the uncued
-% betas_ = squeeze(mean(betas));
-% betas_ci = squeeze(bootci(1000,@mean,betas));
-% disp('Uncued, report direct');
-% for bi = 1:4
-%     disp(sprintf('%2.0f%% [%2.0f, %2.0f]',betas_(1,2,bi)*100,betas_ci(1,1,2,bi)*100,100*betas_ci(2,1,2,bi)));
-% %     disp(squeeze(betas_(1,2,:)));
-% end
-% disp('Cued, report direct');
-% for bi = 1:4
-%     disp(sprintf('%2.0f%% [%2.0f, %2.0f]',betas_(1,3,bi)*100,betas_ci(1,1,3,bi)*100,100*betas_ci(2,1,3,bi)));
-% %     disp(squeeze(betas_(1,2,:)));
-% end
+betas_ = squeeze(mean(betas));
+betas_ci = squeeze(bootci(1000,@mean,betas));
+disp('Uncued, report direct');
+for bi = 1:4
+    disp(sprintf('%2.0f%% [%2.0f, %2.0f]',betas_(1,2,bi)*100,betas_ci(1,1,2,bi)*100,100*betas_ci(2,1,2,bi)));
+%     disp(squeeze(betas_(1,2,:)));
+end
+disp('Cued, report direct');
+for bi = 1:4
+    disp(sprintf('%2.0f%% [%2.0f, %2.0f]',betas_(1,3,bi)*100,betas_ci(1,1,3,bi)*100,100*betas_ci(2,1,3,bi)));
+%     disp(squeeze(betas_(1,2,:)));
+end
 
 % get the differences
 disp('Diff, report direct');
@@ -143,14 +143,14 @@ for bi = 1:4
     disp(sprintf('%2.0f%% [%2.0f, %2.0f]',dbetas_(bi)*100,dbetas_ci(1,bi)*100,100*dbetas_ci(2,bi)));
 end
 
-% disp('Uncued, report color');
-% for bi = 1:4
-%     disp(sprintf('%2.0f%% [%2.0f, %2.0f]',betas_(2,2,bi)*100,betas_ci(1,2,2,bi)*100,100*betas_ci(2,2,2,bi)));
-% end
-% disp('Cued, report color');
-% for bi = 1:4
-%     disp(sprintf('%2.0f%% [%2.0f, %2.0f]',betas_(2,3,bi)*100,betas_ci(1,2,3,bi)*100,100*betas_ci(2,2,3,bi)));
-% end
+disp('Uncued, report color');
+for bi = 1:4
+    disp(sprintf('%2.0f%% [%2.0f, %2.0f]',betas_(2,2,bi)*100,betas_ci(1,2,2,bi)*100,100*betas_ci(2,2,2,bi)));
+end
+disp('Cued, report color');
+for bi = 1:4
+    disp(sprintf('%2.0f%% [%2.0f, %2.0f]',betas_(2,3,bi)*100,betas_ci(1,2,3,bi)*100,100*betas_ci(2,2,3,bi)));
+end
 
 % average over report
 betas__ = squeeze(mean(betas_));

@@ -299,7 +299,7 @@ set(gca,'YTick',0:.1:.2);
 
 drawPublishAxis('figSize=[4.5,4.5]','poster=0');
 
-savepdf(h,fullfile('~/proj/afcom/figures','distance.pdf'));
+% savepdf(h,fullfile('~/proj/afcom/figures','distance.pdf'));
 
 %%
 ddur = dp(:,1)-dp(:,2);
